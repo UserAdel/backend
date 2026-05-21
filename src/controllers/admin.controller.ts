@@ -138,18 +138,21 @@ export const getAdminDashboard = asyncHandler(async (req: Request, res: Response
         : null,
     };
   });
+  const successfulBookings = bookingsWithPayments.filter(
+    (booking) => booking.payment?.status === 'success'
+  );
 
   return successResponse(res, {
     data: {
       stats: {
         activities: activities.filter((activity) => activity.isActive).length,
-        bookings: bookings.length,
-        newBookings: bookingsWithPayments.filter((booking) => booking.status === 'new').length,
+        bookings: successfulBookings.length,
+        newBookings: successfulBookings.filter((booking) => booking.status === 'new').length,
         contacts: contacts.length,
         newContacts: contacts.filter((contact) => contact.status === 'new').length,
         categories: categories.filter((category) => category.isActive).length,
       },
-      bookings: bookingsWithPayments,
+      bookings: successfulBookings,
       contacts,
       activities,
       categories,

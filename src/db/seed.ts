@@ -1,7 +1,9 @@
 import dotenv from 'dotenv';
+import bcrypt from 'bcrypt';
 import { connectDB, mongoose } from './db.connection.js';
 import { Activity } from '../models/activity.model.js';
 import { ActivityCategory } from '../models/activityCategory.model.js';
+import { AdminUser } from '../models/adminUser.model.js';
 import { loadStaticActivitySeedData } from '../services/staticActivitySeed.service.js';
 
 // Setup environment
@@ -9,6 +11,11 @@ const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.en
 dotenv.config({ path: envFile });
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/hurghada_french_guide';
+const DEFAULT_ADMIN = {
+  phone: '01119915593',
+  password: '123456',
+  name: 'Admin',
+};
 
 const seedDatabase = async () => {
   try {
@@ -42,6 +49,21 @@ const seedDatabase = async () => {
     );
 
     console.log(`✅ Seeded ${categories.length} activity categories from frontend static data.`);
+
+    const passwordHash = await bcrypt.hash(DEFAULT_ADMIN.password, 12);
+    await AdminUser.findOneAndUpdate(
+      { phone: DEFAULT_ADMIN.phone },
+      {
+        phone: DEFAULT_ADMIN.phone,
+        passwordHash,
+        name: DEFAULT_ADMIN.name,
+        role: 'admin',
+        isActive: true,
+      },
+      { upsert: true, returnDocument: 'after', runValidators: true }
+    );
+
+    console.log(`✅ Seeded admin user ${DEFAULT_ADMIN.phone}.`);
 
     // 2. Close connection
     await mongoose.connection.close();
