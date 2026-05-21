@@ -1,15 +1,18 @@
 import multer from "multer";
 import fs from "fs";
 import path from "path";
+import { randomUUID } from "crypto";
 import slugify from "../utils/slugify.util.js";
 import { format } from "date-fns";
 import type { Request } from "express";
 
 interface MulterMiddlewareOptions {
   getPath: (req: Request) => string[];
+  allowedMimeTypes?: string[];
+  maxFileSize?: number;
 }
 
-const multerMiddleware = ({ getPath }: MulterMiddlewareOptions) => {
+const multerMiddleware = ({ getPath, allowedMimeTypes, maxFileSize }: MulterMiddlewareOptions) => {
    const storage = multer.diskStorage({
       destination: (req, file, cb) => {
          const folders = getPath(req);
@@ -31,12 +34,23 @@ const multerMiddleware = ({ getPath }: MulterMiddlewareOptions) => {
             new Date(),
             "yyyy-MM-dd_hh-mm-ss-a"
          ).toLowerCase();
-         const uniqueName = `${formattedDate}_${cleanName}`;
+         const uniqueName = `${formattedDate}_${randomUUID().slice(0, 8)}_${cleanName}`;
          cb(null, uniqueName);
       },
    });
 
-   return multer({ storage });
+   return multer({
+      storage,
+      limits: maxFileSize ? { fileSize: maxFileSize } : undefined,
+      fileFilter: (req, file, cb) => {
+         if (allowedMimeTypes && !allowedMimeTypes.includes(file.mimetype)) {
+            cb(new Error("Unsupported file type"));
+            return;
+         }
+
+         cb(null, true);
+      },
+   });
 };
 
 export default multerMiddleware;

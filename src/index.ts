@@ -4,14 +4,17 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { connectDB, mongoose } from './db/db.connection.js';
 import { globalErrorHandler } from './utils/globalErrorHandler.util.js';
+import activityRoutes from './routes/activity.routes.js';
+import requestRoutes from './routes/request.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
 dotenv.config({ path: envFile });
 
 const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
-  PORT: parseInt(process.env.PORT || '3000', 10),
-  MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/nasu',
+  PORT: parseInt(process.env.PORT || '5000', 10),
+  MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/hurghada_french_guide',
 };
 
 const app = express();
@@ -20,13 +23,20 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static('public/uploads'));
 
 // App routes
 app.get('/', (req: Request, res: Response) => {
-  res.send('Hello from TypeScript Express with MongoDB!');
+  res.send('Hurghada French Guide API is running');
 });
 
+app.get('/api/health', (req: Request, res: Response) => {
+  res.json({ success: true, message: 'API is healthy' });
+});
 
+app.use('/api', activityRoutes);
+app.use('/api', requestRoutes);
+app.use('/api', adminRoutes);
 
 // Global Error Handler 
 app.use(globalErrorHandler);

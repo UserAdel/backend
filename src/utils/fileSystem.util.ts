@@ -35,6 +35,6 @@ export const getRelativePathFromUrl = (url: string | null | undefined): string |
       return urlObj.pathname.substring(1); 
    } catch (e) {
       // If not a valid URL, assume it's already a relative path or just return as is
-      return url;
+      return url.replace(/^\/+/, "");
    }
 };
