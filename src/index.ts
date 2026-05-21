@@ -6,6 +6,7 @@ import { connectDB, mongoose } from './db/db.connection.js';
 import { globalErrorHandler } from './utils/globalErrorHandler.util.js';
 import activityRoutes from './routes/activity.routes.js';
 import requestRoutes from './routes/request.routes.js';
+import authRoutes from './routes/auth.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
 
@@ -47,6 +48,7 @@ app.get('/api/health', (req: Request, res: Response) => {
 
 app.use('/api', activityRoutes);
 app.use('/api', requestRoutes);
+app.use('/api', authRoutes);
 app.use('/api', adminRoutes);
 app.use('/api', paymentRoutes);
 

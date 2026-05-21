@@ -23,6 +23,7 @@ import {
   updateContactRequestSchema,
 } from '../validations/request.validation.js';
 import multerMiddleware from '../middlewares/multer.middleware.js';
+import { requireAdminAuth } from '../middlewares/adminAuth.middleware.js';
 import type { Request, Response, NextFunction } from 'express';
 
 const router = Router();
@@ -69,6 +70,8 @@ function parseActivityPayload(req: Request, res: Response, next: NextFunction) {
 
   next();
 }
+
+router.use(requireAdminAuth);
 
 router.get('/admin/dashboard', getAdminDashboard);
 router.post('/admin/activity-categories', validateRequest(activityCategoryAdminSchema), createActivityCategory);
