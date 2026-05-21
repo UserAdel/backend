@@ -47,6 +47,41 @@ export const getActivityBySlug = asyncHandler(async (req: Request, res: Response
   });
 });
 
+export const createActivityReview = asyncHandler(async (req: Request, res: Response) => {
+  const slug = req.params.slug;
+
+  if (!slug) {
+    throw new AppError('Activity slug is required', 400);
+  }
+
+  const activity = await Activity.findOne({
+    slug,
+    isActive: true,
+  });
+
+  if (!activity) {
+    throw new AppError('Activity not found', 404);
+  }
+
+  activity.reviews.push({
+    name: req.body.name,
+    country: req.body.country,
+    rating: req.body.rating,
+    comment: req.body.comment,
+    date: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+  });
+
+  await activity.save();
+
+  const review = activity.reviews[activity.reviews.length - 1];
+
+  return successResponse(res, {
+    message: 'Review added',
+    statusCode: 201,
+    data: { review },
+  });
+});
+
 export const getCategories = asyncHandler(async (req: Request, res: Response) => {
   const categories = await ActivityCategory.find({ isActive: true })
     .sort({ 'name.en': 1 })

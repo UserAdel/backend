@@ -4,10 +4,12 @@ import {
   createActivity,
   deleteActivityCategory,
   deleteActivity,
+  deleteActivityReview,
   getAdminActivity,
   getAdminDashboard,
   updateActivityCategory,
   updateActivity,
+  updateActivityReview,
   updateBookingRequest,
   updateContactRequest,
 } from '../controllers/admin.controller.js';
@@ -15,6 +17,7 @@ import { validateRequest } from '../middlewares/validation.middleware.js';
 import {
   activityAdminSchema,
   activityCategoryAdminSchema,
+  activityReviewSchema,
   updateBookingRequestSchema,
   updateContactRequestSchema,
 } from '../validations/request.validation.js';
@@ -40,9 +43,16 @@ function parseActivityPayload(req: Request, res: Response, next: NextFunction) {
     }
   }
 
-  const files = req.files as
+  const uploadedFiles = req.files as
+    | Express.Multer.File[]
     | { [fieldname: string]: Express.Multer.File[] }
     | undefined;
+  const files = Array.isArray(uploadedFiles)
+    ? uploadedFiles.reduce<Record<string, Express.Multer.File[]>>((filesByField, file) => {
+        filesByField[file.fieldname] = [...(filesByField[file.fieldname] ?? []), file];
+        return filesByField;
+      }, {})
+    : uploadedFiles;
 
   if (files?.image?.[0] && !req.body.imageUrl) {
     req.body.imageUrl = `/uploads/activities/${files.image[0].filename}`;
@@ -50,6 +60,10 @@ function parseActivityPayload(req: Request, res: Response, next: NextFunction) {
 
   if (!Array.isArray(req.body.galleryImages)) {
     req.body.galleryImages = [];
+  }
+
+  if (!Array.isArray(req.body.videoHighlights)) {
+    req.body.videoHighlights = [];
   }
 
   next();
@@ -61,10 +75,7 @@ router.patch('/admin/activity-categories/:id', validateRequest(activityCategoryA
 router.delete('/admin/activity-categories/:id', deleteActivityCategory);
 router.post(
   '/admin/activities',
-  activityImageUpload.fields([
-    { name: 'image', maxCount: 1 },
-    { name: 'gallery', maxCount: 20 },
-  ]),
+  activityImageUpload.any(),
   parseActivityPayload,
   validateRequest(activityAdminSchema),
   createActivity
@@ -72,15 +83,14 @@ router.post(
 router.get('/admin/activities/:id', getAdminActivity);
 router.patch(
   '/admin/activities/:id',
-  activityImageUpload.fields([
-    { name: 'image', maxCount: 1 },
-    { name: 'gallery', maxCount: 20 },
-  ]),
+  activityImageUpload.any(),
   parseActivityPayload,
   validateRequest(activityAdminSchema),
   updateActivity
 );
 router.delete('/admin/activities/:id', deleteActivity);
+router.patch('/admin/activities/:id/reviews/:reviewId', validateRequest(activityReviewSchema), updateActivityReview);
+router.delete('/admin/activities/:id/reviews/:reviewId', deleteActivityReview);
 router.patch('/admin/bookings/:id', validateRequest(updateBookingRequestSchema), updateBookingRequest);
 router.patch('/admin/contacts/:id', validateRequest(updateContactRequestSchema), updateContactRequest);
 

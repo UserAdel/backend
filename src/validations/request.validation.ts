@@ -22,6 +22,13 @@ export const createContactRequestSchema = Joi.object({
   message: Joi.string().trim().min(5).max(3000).required(),
 });
 
+export const activityReviewSchema = Joi.object({
+  name: Joi.string().trim().min(2).max(120).required(),
+  country: Joi.string().trim().min(2).max(120).required(),
+  rating: Joi.number().integer().min(1).max(5).required(),
+  comment: Joi.string().trim().min(5).max(2000).required(),
+});
+
 export const updateBookingRequestSchema = Joi.object({
   status: Joi.string().valid('new', 'contacted', 'confirmed', 'cancelled').required(),
   adminNotes: Joi.string().trim().allow('').max(1500).optional(),
@@ -57,6 +64,14 @@ const pricingFieldSchema = Joi.object({
   isMain: Joi.boolean().optional(),
 });
 
+const videoHighlightSchema = Joi.object({
+  id: Joi.string().trim().allow('').max(120).optional(),
+  title: Joi.string().trim().min(1).max(180).required(),
+  youtubeUrl: Joi.string().trim().uri().max(500).required(),
+  youtubeId: Joi.string().trim().allow('').max(80).optional(),
+  thumbnail: Joi.string().trim().allow('').max(500).optional(),
+});
+
 export const activityAdminSchema = Joi.object({
   id: Joi.string().trim().min(2).max(120).required(),
   slug: Joi.string().trim().lowercase().min(2).max(160).required(),
@@ -85,6 +100,7 @@ export const activityAdminSchema = Joi.object({
   freeCancellation: Joi.boolean().default(true),
   privateAvailable: Joi.boolean().required(),
   groupAvailable: Joi.boolean().required(),
+  videoHighlights: Joi.array().items(videoHighlightSchema).optional(),
   isActive: Joi.boolean().optional(),
 });
 

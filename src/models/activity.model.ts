@@ -37,6 +37,31 @@ const pricingFieldSchema = new Schema(
   { _id: false }
 );
 
+const activityReviewSchema = new Schema(
+  {
+    name: { type: String, required: true, trim: true, maxlength: 120 },
+    country: { type: String, required: true, default: 'Unknown country', trim: true, maxlength: 120 },
+    rating: { type: Number, required: true, min: 1, max: 5 },
+    comment: { type: String, required: true, trim: true, maxlength: 2000 },
+    date: { type: String, trim: true, maxlength: 80 },
+  },
+  {
+    timestamps: true,
+    versionKey: false,
+  }
+);
+
+const activityVideoHighlightSchema = new Schema(
+  {
+    id: { type: String, trim: true },
+    title: { type: String, required: true, trim: true, maxlength: 180 },
+    youtubeUrl: { type: String, required: true, trim: true, maxlength: 500 },
+    youtubeId: { type: String, trim: true, maxlength: 80 },
+    thumbnail: { type: String, trim: true, maxlength: 500 },
+  },
+  { _id: false }
+);
+
 const activitySchema = new Schema(
   {
     id: { type: String, required: true, unique: true, trim: true },
@@ -66,6 +91,8 @@ const activitySchema = new Schema(
     freeCancellation: { type: Boolean, default: true },
     privateAvailable: { type: Boolean, required: true },
     groupAvailable: { type: Boolean, required: true },
+    reviews: { type: [activityReviewSchema], default: [] },
+    videoHighlights: { type: [activityVideoHighlightSchema], default: [] },
     isActive: { type: Boolean, default: true, index: true },
   },
   {

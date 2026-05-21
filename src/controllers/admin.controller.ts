@@ -9,13 +9,39 @@ import { BookingRequest } from '../models/bookingRequest.model.js';
 import { ContactRequest } from '../models/contactRequest.model.js';
 import { deleteFile, getRelativePathFromUrl } from '../utils/fileSystem.util.js';
 
-function applyUploadedActivityImage(req: Request) {
+function getUploadedFilesByField(req: Request) {
   const files = req.files as
+    | Express.Multer.File[]
     | { [fieldname: string]: Express.Multer.File[] }
     | undefined;
+
+  if (Array.isArray(files)) {
+    return files.reduce<Record<string, Express.Multer.File[]>>((filesByField, file) => {
+      filesByField[file.fieldname] = [...(filesByField[file.fieldname] ?? []), file];
+      return filesByField;
+    }, {});
+  }
+
+  return files ?? {};
+}
+
+function applyUploadedActivityImage(req: Request) {
+  const files = getUploadedFilesByField(req);
   const mainImage = files?.image?.[0];
   const imageUrl = mainImage ? `/uploads/activities/${mainImage.filename}` : req.body.imageUrl;
   const uploadedGalleryImages = files?.gallery?.map((file) => `/uploads/activities/${file.filename}`) ?? [];
+  const videoHighlights = (req.body.videoHighlights ?? []).map(
+    (video: Record<string, unknown>, index: number) => {
+      const thumbnailFile = files?.[`videoThumbnail_${index}`]?.[0];
+
+      return {
+        ...video,
+        ...(thumbnailFile
+          ? { thumbnail: `/uploads/activities/${thumbnailFile.filename}` }
+          : {}),
+      };
+    }
+  );
   const galleryImages = Array.from(
     new Set([...(req.body.galleryImages ?? []), ...uploadedGalleryImages])
   ).filter((galleryImageUrl) => galleryImageUrl !== imageUrl);
@@ -24,6 +50,7 @@ function applyUploadedActivityImage(req: Request) {
     ...req.body,
     ...(imageUrl ? { imageUrl } : {}),
     galleryImages,
+    videoHighlights,
   };
 }
 
@@ -46,6 +73,23 @@ async function deleteRemovedUploadedGalleryImages(
   );
 
   await Promise.all(removedImages.map((imageUrl) => deletePreviousUploadedImage(imageUrl)));
+}
+
+async function deleteRemovedUploadedVideoThumbnails(
+  previousVideoHighlights: ReadonlyArray<{ thumbnail?: string | null }> | undefined,
+  nextVideoHighlights: ReadonlyArray<{ thumbnail?: string | null }> | undefined
+) {
+  const nextThumbnails = new Set(
+    (nextVideoHighlights ?? [])
+      .map((video) => video.thumbnail)
+      .filter(Boolean)
+  );
+  const removedThumbnails = (previousVideoHighlights ?? [])
+    .map((video) => video.thumbnail)
+    .filter((thumbnail): thumbnail is string => Boolean(thumbnail))
+    .filter((thumbnail) => !nextThumbnails.has(thumbnail));
+
+  await Promise.all(removedThumbnails.map((thumbnail) => deletePreviousUploadedImage(thumbnail)));
 }
 
 export const getAdminDashboard = asyncHandler(async (req: Request, res: Response) => {
@@ -185,9 +229,7 @@ export const updateActivity = asyncHandler(async (req: Request, res: Response) =
     throw new AppError('Activity not found', 404);
   }
 
-  const files = req.files as
-    | { [fieldname: string]: Express.Multer.File[] }
-    | undefined;
+  const files = getUploadedFilesByField(req);
   if (files?.image?.[0] && previousActivity.imageUrl !== activity.imageUrl) {
     await deletePreviousUploadedImage(previousActivity.imageUrl);
   }
@@ -195,6 +237,10 @@ export const updateActivity = asyncHandler(async (req: Request, res: Response) =
   await deleteRemovedUploadedGalleryImages(
     previousActivity.galleryImages,
     activity.galleryImages
+  );
+  await deleteRemovedUploadedVideoThumbnails(
+    previousActivity.videoHighlights,
+    activity.videoHighlights
   );
 
   return successResponse(res, {
@@ -222,6 +268,66 @@ export const deleteActivity = asyncHandler(async (req: Request, res: Response) =
 
   return successResponse(res, {
     message: 'Activity archived',
+    data: { activity },
+  });
+});
+
+export const updateActivityReview = asyncHandler(async (req: Request, res: Response) => {
+  const activityId = req.params.id;
+  const reviewId = req.params.reviewId;
+
+  if (!activityId || !reviewId) {
+    throw new AppError('Activity id and review id are required', 400);
+  }
+
+  const activity = await Activity.findOneAndUpdate(
+    { _id: activityId, 'reviews._id': reviewId },
+    {
+      $set: {
+        'reviews.$.name': req.body.name,
+        'reviews.$.country': req.body.country,
+        'reviews.$.rating': req.body.rating,
+        'reviews.$.comment': req.body.comment,
+      },
+    },
+    { returnDocument: 'after', runValidators: true }
+  );
+
+  if (!activity) {
+    throw new AppError('Activity review not found', 404);
+  }
+
+  const review = activity.reviews.find((item) => {
+    const itemId = (item as { _id?: unknown })._id;
+    return itemId?.toString() === reviewId;
+  });
+
+  return successResponse(res, {
+    message: 'Activity review updated',
+    data: { review },
+  });
+});
+
+export const deleteActivityReview = asyncHandler(async (req: Request, res: Response) => {
+  const activityId = req.params.id;
+  const reviewId = req.params.reviewId;
+
+  if (!activityId || !reviewId) {
+    throw new AppError('Activity id and review id are required', 400);
+  }
+
+  const activity = await Activity.findOneAndUpdate(
+    { _id: activityId, 'reviews._id': reviewId },
+    { $pull: { reviews: { _id: reviewId } } },
+    { returnDocument: 'after', runValidators: true }
+  );
+
+  if (!activity) {
+    throw new AppError('Activity review not found', 404);
+  }
+
+  return successResponse(res, {
+    message: 'Activity review deleted',
     data: { activity },
   });
 });

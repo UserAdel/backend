@@ -130,6 +130,21 @@ export interface SeedActivity {
   freeCancellation?: boolean;
   privateAvailable: boolean;
   groupAvailable: boolean;
+  reviews?: Array<{
+    name: string;
+    country: string;
+    rating: number;
+    comment: string;
+    date?: string;
+    createdAt?: Date;
+  }>;
+  videoHighlights?: Array<{
+    id?: string;
+    title: string;
+    youtubeUrl: string;
+    youtubeId?: string;
+    thumbnail?: string;
+  }>;
 }
 
 export interface SeedCategory {
@@ -156,6 +171,20 @@ export async function loadStaticActivitySeedData() {
   const activityGalleries = evaluateValue<Record<string, string[]>>(
     extractObject(mediaSource, 'activityGalleries')
   );
+  const activityTestimonials = evaluateValue<Record<string, Array<{
+    name: string;
+    nationality: string;
+    rating: number;
+    text: string;
+    date: string;
+  }>>>(extractObject(mediaSource, 'activityTestimonials'));
+  const activityVideos = evaluateValue<Record<string, Array<{
+    id?: string;
+    thumbnail?: string;
+    title: string;
+    youtubeId?: string;
+    embedUrl?: string;
+  }>>>(extractObject(mediaSource, 'activityVideos'));
 
   const activitiesWithGalleries = activities.map((activity) => ({
     ...activity,
@@ -168,6 +197,25 @@ export async function loadStaticActivitySeedData() {
       new Set((activityGalleries[activity.slug] ?? activityGalleries[activity.id] ?? [])
         .filter((imageUrl) => imageUrl !== activity.imageUrl))
     ),
+    reviews: (activityTestimonials[activity.slug] ?? activityTestimonials[activity.id] ?? [])
+      .map((review) => ({
+        name: review.name,
+        country: review.nationality,
+        rating: review.rating,
+        comment: review.text,
+        date: review.date,
+      })),
+    videoHighlights: (activityVideos[activity.slug] ?? activityVideos[activity.id] ?? [])
+      .map((video, index) => ({
+        id: video.id ?? `${activity.slug}-video-${index + 1}`,
+        title: video.title,
+        youtubeUrl: video.youtubeId
+          ? `https://www.youtube.com/watch?v=${video.youtubeId}`
+          : video.embedUrl ?? '',
+        youtubeId: video.youtubeId,
+        thumbnail: video.thumbnail,
+      }))
+      .filter((video) => video.youtubeUrl),
   }));
 
   return { activities: activitiesWithGalleries, categories };
