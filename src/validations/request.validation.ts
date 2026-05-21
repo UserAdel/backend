@@ -30,7 +30,7 @@ export const activityReviewSchema = Joi.object({
 });
 
 export const updateBookingRequestSchema = Joi.object({
-  status: Joi.string().valid('new', 'contacted', 'confirmed', 'cancelled').required(),
+  status: Joi.string().valid('pending', 'new', 'contacted', 'confirmed', 'cancelled').required(),
   adminNotes: Joi.string().trim().allow('').max(1500).optional(),
 });
 
@@ -45,8 +45,13 @@ const localizedStringSchema = Joi.object({
 });
 
 const localizedListSchema = Joi.object({
-  en: Joi.array().items(Joi.string().trim().min(1)).min(1).required(),
-  fr: Joi.array().items(Joi.string().trim().min(1)).min(1).required(),
+  en: Joi.array().items(Joi.string().trim().min(1)).default([]),
+  fr: Joi.array().items(Joi.string().trim().min(1)).default([]),
+});
+
+const optionalLocalizedStringSchema = Joi.object({
+  en: Joi.string().trim().allow('').max(5000).default(''),
+  fr: Joi.string().trim().allow('').max(5000).default(''),
 });
 
 const pricingSchema = Joi.object({
@@ -78,17 +83,17 @@ export const activityAdminSchema = Joi.object({
   name: localizedStringSchema.required(),
   category: Joi.string().trim().min(2).max(120).required(),
   description: localizedStringSchema.required(),
-  highlights: localizedListSchema.required(),
+  highlights: localizedListSchema.default({ en: [], fr: [] }),
   pricing: pricingSchema.default({}),
   pricingFields: Joi.array().items(pricingFieldSchema).min(1).required(),
-  ageRestrictions: localizedStringSchema.required(),
+  ageRestrictions: optionalLocalizedStringSchema.default({ en: '', fr: '' }),
   duration: Joi.string().trim().min(1).max(80).required(),
   startTime: Joi.string().trim().allow('').max(20).optional(),
   endTime: Joi.string().trim().allow('').max(20).optional(),
   times: Joi.array().items(Joi.string().trim().min(1).max(20)).optional(),
   maxCapacity: Joi.number().integer().min(0).allow(null).optional(),
   maxWeight: Joi.number().integer().min(0).allow(null).optional(),
-  included: localizedListSchema.required(),
+  included: localizedListSchema.default({ en: [], fr: [] }),
   excluded: localizedListSchema.optional(),
   imageUrl: Joi.string().trim().min(1).max(500).required(),
   galleryImages: Joi.array().items(Joi.string().trim().min(1).max(500)).optional(),

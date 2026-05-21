@@ -8,10 +8,18 @@ const localizedStringSchema = new Schema(
   { _id: false }
 );
 
+const optionalLocalizedStringSchema = new Schema(
+  {
+    en: { type: String, trim: true, default: '' },
+    fr: { type: String, trim: true, default: '' },
+  },
+  { _id: false }
+);
+
 const localizedListSchema = new Schema(
   {
-    en: [{ type: String, required: true, trim: true }],
-    fr: [{ type: String, required: true, trim: true }],
+    en: { type: [{ type: String, required: true, trim: true }], default: [] },
+    fr: { type: [{ type: String, required: true, trim: true }], default: [] },
   },
   { _id: false }
 );
@@ -69,17 +77,17 @@ const activitySchema = new Schema(
     name: { type: localizedStringSchema, required: true },
     category: { type: String, required: true, index: true, trim: true },
     description: { type: localizedStringSchema, required: true },
-    highlights: { type: localizedListSchema, required: true },
+    highlights: { type: localizedListSchema, default: () => ({ en: [], fr: [] }) },
     pricing: { type: pricingSchema, required: true },
     pricingFields: { type: [pricingFieldSchema], default: [] },
-    ageRestrictions: { type: localizedStringSchema, required: true },
+    ageRestrictions: { type: optionalLocalizedStringSchema, default: () => ({ en: '', fr: '' }) },
     duration: { type: String, required: true, trim: true },
     startTime: { type: String, trim: true },
     endTime: { type: String, trim: true },
     times: [{ type: String, trim: true }],
     maxCapacity: Number,
     maxWeight: Number,
-    included: { type: localizedListSchema, required: true },
+    included: { type: localizedListSchema, default: () => ({ en: [], fr: [] }) },
     excluded: localizedListSchema,
     imageUrl: { type: String, required: true, trim: true },
     galleryImages: [{ type: String, trim: true }],

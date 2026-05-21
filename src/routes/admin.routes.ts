@@ -5,6 +5,7 @@ import {
   deleteActivityCategory,
   deleteActivity,
   deleteActivityReview,
+  deleteContactRequest,
   getAdminActivity,
   getAdminDashboard,
   updateActivityCategory,
@@ -93,5 +94,6 @@ router.patch('/admin/activities/:id/reviews/:reviewId', validateRequest(activity
 router.delete('/admin/activities/:id/reviews/:reviewId', deleteActivityReview);
 router.patch('/admin/bookings/:id', validateRequest(updateBookingRequestSchema), updateBookingRequest);
 router.patch('/admin/contacts/:id', validateRequest(updateContactRequestSchema), updateContactRequest);
+router.delete('/admin/contacts/:id', deleteContactRequest);
 
 export default router;

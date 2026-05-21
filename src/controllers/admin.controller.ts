@@ -120,9 +120,11 @@ export const getAdminDashboard = asyncHandler(async (req: Request, res: Response
   );
   const bookingsWithPayments = bookings.map((booking) => {
     const payment = paymentsByBookingId[String(booking._id)];
+    const status = payment?.status === 'pending' ? 'pending' : booking.status;
 
     return {
       ...booking,
+      status,
       paidAmount: payment?.status === 'success' ? payment.amount : 0,
       payment: payment
         ? {
@@ -142,7 +144,7 @@ export const getAdminDashboard = asyncHandler(async (req: Request, res: Response
       stats: {
         activities: activities.filter((activity) => activity.isActive).length,
         bookings: bookings.length,
-        newBookings: bookings.filter((booking) => booking.status === 'new').length,
+        newBookings: bookingsWithPayments.filter((booking) => booking.status === 'new').length,
         contacts: contacts.length,
         newContacts: contacts.filter((contact) => contact.status === 'new').length,
         categories: categories.filter((category) => category.isActive).length,
@@ -417,6 +419,25 @@ export const updateContactRequest = asyncHandler(async (req: Request, res: Respo
 
   return successResponse(res, {
     message: 'Contact request updated',
+    data: { contact },
+  });
+});
+
+export const deleteContactRequest = asyncHandler(async (req: Request, res: Response) => {
+  const contactId = req.params.id;
+
+  if (!contactId) {
+    throw new AppError('Contact request id is required', 400);
+  }
+
+  const contact = await ContactRequest.findByIdAndDelete(contactId);
+
+  if (!contact) {
+    throw new AppError('Contact request not found', 404);
+  }
+
+  return successResponse(res, {
+    message: 'Contact request deleted',
     data: { contact },
   });
 });

@@ -2,6 +2,8 @@
 node_modules/
 # Build output
 dist/
+# Uploaded files
+public/uploads/
 # Environment files
 .env
 .env.*

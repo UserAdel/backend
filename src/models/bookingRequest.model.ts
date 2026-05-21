@@ -18,7 +18,7 @@ const bookingRequestSchema = new Schema(
     activityName: { type: String, required: true, trim: true },
     status: {
       type: String,
-      enum: ['new', 'contacted', 'confirmed', 'cancelled'],
+      enum: ['pending', 'new', 'contacted', 'confirmed', 'cancelled'],
       default: 'new',
       index: true,
     },

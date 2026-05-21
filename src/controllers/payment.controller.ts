@@ -46,6 +46,10 @@ export const initiatePayment = asyncHandler(async (req: Request, res: Response) 
     throw new AppError('Failed to create payment session', 500);
   }
 
+  await BookingRequest.findByIdAndUpdate(bookingRequestId, {
+    status: 'pending',
+  });
+
   return successResponse(res, {
     message: 'Payment session created',
     statusCode: 200,
