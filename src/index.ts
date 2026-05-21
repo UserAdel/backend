@@ -1,15 +1,13 @@
+import './env.js';
 import express from 'express';
 import type { Request, Response } from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { connectDB, mongoose } from './db/db.connection.js';
 import { globalErrorHandler } from './utils/globalErrorHandler.util.js';
 import activityRoutes from './routes/activity.routes.js';
 import requestRoutes from './routes/request.routes.js';
 import adminRoutes from './routes/admin.routes.js';
-
-const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
-dotenv.config({ path: envFile });
+import paymentRoutes from './routes/payment.routes.js';
 
 const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
@@ -20,7 +18,20 @@ const env = {
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+      'X-Kashier-Signature',
+    ],
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static('public/uploads'));
@@ -37,6 +48,7 @@ app.get('/api/health', (req: Request, res: Response) => {
 app.use('/api', activityRoutes);
 app.use('/api', requestRoutes);
 app.use('/api', adminRoutes);
+app.use('/api', paymentRoutes);
 
 // Global Error Handler 
 app.use(globalErrorHandler);

@@ -7,6 +7,7 @@ import { Activity } from '../models/activity.model.js';
 import { ActivityCategory } from '../models/activityCategory.model.js';
 import { BookingRequest } from '../models/bookingRequest.model.js';
 import { ContactRequest } from '../models/contactRequest.model.js';
+import { Payment } from '../models/payment.model.js';
 import { deleteFile, getRelativePathFromUrl } from '../utils/fileSystem.util.js';
 
 function getUploadedFilesByField(req: Request) {
@@ -99,6 +100,42 @@ export const getAdminDashboard = asyncHandler(async (req: Request, res: Response
     Activity.find().sort({ isActive: -1, featured: -1, 'name.en': 1 }).lean(),
     ActivityCategory.find().sort({ isActive: -1, 'name.en': 1 }).lean(),
   ]);
+  const payments = await Payment.find({
+    bookingRequestId: { $in: bookings.map((booking) => booking._id) },
+  })
+    .sort({ createdAt: -1 })
+    .lean();
+  const paymentsByBookingId = payments.reduce<Record<string, (typeof payments)[number]>>(
+    (paymentMap, payment) => {
+      const bookingId = String(payment.bookingRequestId);
+      const currentPayment = paymentMap[bookingId];
+
+      if (!currentPayment || (payment.status === 'success' && currentPayment.status !== 'success')) {
+        paymentMap[bookingId] = payment;
+      }
+
+      return paymentMap;
+    },
+    {}
+  );
+  const bookingsWithPayments = bookings.map((booking) => {
+    const payment = paymentsByBookingId[String(booking._id)];
+
+    return {
+      ...booking,
+      paidAmount: payment?.status === 'success' ? payment.amount : 0,
+      payment: payment
+        ? {
+            amount: payment.amount,
+            amountWithFees: payment.amountWithFees,
+            status: payment.status,
+            orderId: payment.orderId,
+            transactionId: payment.transactionId,
+            updatedAt: payment.updatedAt,
+          }
+        : null,
+    };
+  });
 
   return successResponse(res, {
     data: {
@@ -110,7 +147,7 @@ export const getAdminDashboard = asyncHandler(async (req: Request, res: Response
         newContacts: contacts.filter((contact) => contact.status === 'new').length,
         categories: categories.filter((category) => category.isActive).length,
       },
-      bookings,
+      bookings: bookingsWithPayments,
       contacts,
       activities,
       categories,
