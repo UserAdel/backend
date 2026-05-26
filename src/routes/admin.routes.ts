@@ -71,7 +71,7 @@ function parseActivityPayload(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-router.use(requireAdminAuth);
+router.use('/admin', requireAdminAuth);
 
 router.get('/admin/dashboard', getAdminDashboard);
 router.post('/admin/activity-categories', validateRequest(activityCategoryAdminSchema), createActivityCategory);
