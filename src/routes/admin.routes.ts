@@ -68,6 +68,10 @@ function parseActivityPayload(req: Request, res: Response, next: NextFunction) {
     req.body.videoHighlights = [];
   }
 
+  if (!Array.isArray(req.body.videoReviews)) {
+    req.body.videoReviews = [];
+  }
+
   next();
 }
 

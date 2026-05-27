@@ -7,7 +7,6 @@ import { Activity } from '../models/activity.model.js';
 import { ActivityCategory } from '../models/activityCategory.model.js';
 import { BookingRequest } from '../models/bookingRequest.model.js';
 import { ContactRequest } from '../models/contactRequest.model.js';
-import { Payment } from '../models/payment.model.js';
 import { deleteFile, getRelativePathFromUrl } from '../utils/fileSystem.util.js';
 
 function getUploadedFilesByField(req: Request) {
@@ -43,6 +42,18 @@ function applyUploadedActivityImage(req: Request) {
       };
     }
   );
+  const videoReviews = (req.body.videoReviews ?? []).map(
+    (videoReview: Record<string, unknown>, index: number) => {
+      const thumbnailFile = files?.[`videoReviewThumbnail_${index}`]?.[0];
+
+      return {
+        ...videoReview,
+        ...(thumbnailFile
+          ? { thumbnail: `/uploads/activities/${thumbnailFile.filename}` }
+          : {}),
+      };
+    }
+  );
   const galleryImages = Array.from(
     new Set([...(req.body.galleryImages ?? []), ...uploadedGalleryImages])
   ).filter((galleryImageUrl) => galleryImageUrl !== imageUrl);
@@ -52,6 +63,7 @@ function applyUploadedActivityImage(req: Request) {
     ...(imageUrl ? { imageUrl } : {}),
     galleryImages,
     videoHighlights,
+    videoReviews,
   };
 }
 
@@ -100,59 +112,18 @@ export const getAdminDashboard = asyncHandler(async (req: Request, res: Response
     Activity.find().sort({ isActive: -1, featured: -1, 'name.en': 1 }).lean(),
     ActivityCategory.find().sort({ isActive: -1, 'name.en': 1 }).lean(),
   ]);
-  const payments = await Payment.find({
-    bookingRequestId: { $in: bookings.map((booking) => booking._id) },
-  })
-    .sort({ createdAt: -1 })
-    .lean();
-  const paymentsByBookingId = payments.reduce<Record<string, (typeof payments)[number]>>(
-    (paymentMap, payment) => {
-      const bookingId = String(payment.bookingRequestId);
-      const currentPayment = paymentMap[bookingId];
-
-      if (!currentPayment || (payment.status === 'success' && currentPayment.status !== 'success')) {
-        paymentMap[bookingId] = payment;
-      }
-
-      return paymentMap;
-    },
-    {}
-  );
-  const bookingsWithPayments = bookings.map((booking) => {
-    const payment = paymentsByBookingId[String(booking._id)];
-    const status = payment?.status === 'pending' ? 'pending' : booking.status;
-
-    return {
-      ...booking,
-      status,
-      paidAmount: payment?.status === 'success' ? payment.amount : 0,
-      payment: payment
-        ? {
-            amount: payment.amount,
-            amountWithFees: payment.amountWithFees,
-            status: payment.status,
-            orderId: payment.orderId,
-            transactionId: payment.transactionId,
-            updatedAt: payment.updatedAt,
-          }
-        : null,
-    };
-  });
-  const successfulBookings = bookingsWithPayments.filter(
-    (booking) => booking.payment?.status === 'success'
-  );
 
   return successResponse(res, {
     data: {
       stats: {
         activities: activities.filter((activity) => activity.isActive).length,
-        bookings: successfulBookings.length,
-        newBookings: successfulBookings.filter((booking) => booking.status === 'new').length,
+        bookings: bookings.length,
+        newBookings: bookings.filter((booking) => booking.status === 'new').length,
         contacts: contacts.length,
         newContacts: contacts.filter((contact) => contact.status === 'new').length,
         categories: categories.filter((category) => category.isActive).length,
       },
-      bookings: successfulBookings,
+      bookings,
       contacts,
       activities,
       categories,
@@ -283,6 +254,10 @@ export const updateActivity = asyncHandler(async (req: Request, res: Response) =
   await deleteRemovedUploadedVideoThumbnails(
     previousActivity.videoHighlights,
     activity.videoHighlights
+  );
+  await deleteRemovedUploadedVideoThumbnails(
+    previousActivity.videoReviews,
+    activity.videoReviews
   );
 
   return successResponse(res, {

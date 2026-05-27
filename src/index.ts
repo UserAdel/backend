@@ -8,7 +8,6 @@ import activityRoutes from './routes/activity.routes.js';
 import requestRoutes from './routes/request.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import adminRoutes from './routes/admin.routes.js';
-import paymentRoutes from './routes/payment.routes.js';
 
 const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
@@ -29,7 +28,6 @@ app.use(
       'X-Requested-With',
       'Accept',
       'Origin',
-      'X-Kashier-Signature',
     ],
   })
 );
@@ -50,7 +48,6 @@ app.use('/api', activityRoutes);
 app.use('/api', requestRoutes);
 app.use('/api', authRoutes);
 app.use('/api', adminRoutes);
-app.use('/api', paymentRoutes);
 
 // Global Error Handler 
 app.use(globalErrorHandler);

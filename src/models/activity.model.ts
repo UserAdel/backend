@@ -70,6 +70,20 @@ const activityVideoHighlightSchema = new Schema(
   { _id: false }
 );
 
+const activityVideoReviewSchema = new Schema(
+  {
+    id: { type: String, trim: true },
+    name: { type: String, required: true, trim: true, maxlength: 120 },
+    nationality: { type: String, required: true, trim: true, maxlength: 120 },
+    rating: { type: Number, required: true, min: 1, max: 5 },
+    quote: { type: String, required: true, trim: true, maxlength: 500 },
+    youtubeUrl: { type: String, required: true, trim: true, maxlength: 500 },
+    youtubeId: { type: String, trim: true, maxlength: 80 },
+    thumbnail: { type: String, trim: true, maxlength: 500 },
+  },
+  { _id: false }
+);
+
 const activitySchema = new Schema(
   {
     id: { type: String, required: true, unique: true, trim: true },
@@ -101,6 +115,7 @@ const activitySchema = new Schema(
     groupAvailable: { type: Boolean, required: true },
     reviews: { type: [activityReviewSchema], default: [] },
     videoHighlights: { type: [activityVideoHighlightSchema], default: [] },
+    videoReviews: { type: [activityVideoReviewSchema], default: [] },
     isActive: { type: Boolean, default: true, index: true },
   },
   {

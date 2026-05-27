@@ -77,6 +77,17 @@ const videoHighlightSchema = Joi.object({
   thumbnail: Joi.string().trim().allow('').max(500).optional(),
 });
 
+const videoReviewSchema = Joi.object({
+  id: Joi.string().trim().allow('').max(120).optional(),
+  name: Joi.string().trim().min(2).max(120).required(),
+  nationality: Joi.string().trim().min(2).max(120).required(),
+  rating: Joi.number().integer().min(1).max(5).required(),
+  quote: Joi.string().trim().min(2).max(500).required(),
+  youtubeUrl: Joi.string().trim().uri().max(500).required(),
+  youtubeId: Joi.string().trim().allow('').max(80).optional(),
+  thumbnail: Joi.string().trim().allow('').max(500).optional(),
+});
+
 export const activityAdminSchema = Joi.object({
   id: Joi.string().trim().min(2).max(120).required(),
   slug: Joi.string().trim().lowercase().min(2).max(160).required(),
@@ -106,6 +117,7 @@ export const activityAdminSchema = Joi.object({
   privateAvailable: Joi.boolean().required(),
   groupAvailable: Joi.boolean().required(),
   videoHighlights: Joi.array().items(videoHighlightSchema).optional(),
+  videoReviews: Joi.array().items(videoReviewSchema).optional(),
   isActive: Joi.boolean().optional(),
 });
 
