@@ -5,7 +5,7 @@ import AppError from '../utils/AppError.util.js';
 import { Activity } from '../models/activity.model.js';
 import { BookingRequest } from '../models/bookingRequest.model.js';
 import { ContactRequest } from '../models/contactRequest.model.js';
-import { sendBookingConfirmation } from '../services/wapilot.service.js';
+import { sendBookingConfirmation, sendAdminNewBookingAlert } from '../services/wapilot.service.js';
 
 export const createBookingRequest = asyncHandler(async (req: Request, res: Response) => {
   const activity = await Activity.findOne({
@@ -22,9 +22,24 @@ export const createBookingRequest = asyncHandler(async (req: Request, res: Respo
     activityName: activity.name.en,
   });
 
-  // Send WhatsApp confirmation — non-blocking, errors are swallowed inside the service
+  // Non-blocking notifications — customer confirmation + admin alert
   sendBookingConfirmation({
     fullName: booking.fullName,
+    phone: booking.phone,
+    whatsapp: booking.whatsapp,
+    activityName: activity.name.en,
+    arrivalDate: booking.arrivalDate ?? '',
+    preferredDate: booking.preferredDate,
+    adults: booking.adults,
+    children: booking.children,
+    language: booking.language,
+    nationality: booking.nationality,
+    specialRequests: booking.specialRequests ?? '',
+  });
+
+  sendAdminNewBookingAlert({
+    fullName: booking.fullName,
+    phone: booking.phone,
     whatsapp: booking.whatsapp,
     activityName: activity.name.en,
     arrivalDate: booking.arrivalDate ?? '',

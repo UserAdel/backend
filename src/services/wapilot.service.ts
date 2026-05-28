@@ -7,6 +7,7 @@ const WAPILOT_API = 'https://app.wapilot.io/api/send-message';
 
 export interface BookingConfirmationPayload {
   fullName: string;
+  phone: string;
   whatsapp: string;
   activityName: string;
   arrivalDate: string;
@@ -18,7 +19,7 @@ export interface BookingConfirmationPayload {
   specialRequests?: string;
 }
 
-function buildMessage(payload: BookingConfirmationPayload): string {
+function buildCustomerMessage(payload: BookingConfirmationPayload): string {
   const isFr = payload.language === 'fr';
 
   if (isFr) {
@@ -52,46 +53,72 @@ function buildMessage(payload: BookingConfirmationPayload): string {
   );
 }
 
-/**
- * Sends a WhatsApp confirmation message via Wapilot.
- * Failures are logged but never thrown — the booking is still saved.
- */
-export async function sendBookingConfirmation(payload: BookingConfirmationPayload): Promise<void> {
+// ─── Shared low-level sender ───────────────────────────────────────────────
+
+export async function sendWapilotMessage(phone: string, message: string): Promise<void> {
   const instance = process.env.WAPILOT_INSTANCE;
   const token = process.env.WAPILOT_TOKEN;
 
   if (!instance || !token) {
-    console.warn('[Wapilot] WAPILOT_INSTANCE or WAPILOT_TOKEN is not set — skipping WhatsApp notification.');
+    console.warn('[Wapilot] WAPILOT_INSTANCE or WAPILOT_TOKEN not set — skipping.');
     return;
   }
 
-  // Normalise phone: strip spaces/dashes, ensure it starts with +
-  let phone = payload.whatsapp.replace(/[\s\-().]/g, '');
-  if (!phone.startsWith('+')) {
-    phone = `+${phone}`;
-  }
-
-  const body = {
-    instance,
-    token,
-    phone,
-    message: buildMessage(payload),
-  };
+  // Normalise: strip spaces/dashes, ensure leading +
+  let normalised = phone.replace(/[\s\-().]/g, '');
+  if (!normalised.startsWith('+')) normalised = `+${normalised}`;
 
   try {
     const res = await fetch(WAPILOT_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ instance, token, phone: normalised, message }),
     });
 
     if (!res.ok) {
       const text = await res.text();
-      console.error(`[Wapilot] HTTP ${res.status}: ${text}`);
+      console.error(`[Wapilot] HTTP ${res.status} → ${normalised}: ${text}`);
     } else {
-      console.log(`[Wapilot] Confirmation sent to ${phone}`);
+      console.log(`[Wapilot] Message sent to ${normalised}`);
     }
   } catch (err) {
-    console.error('[Wapilot] Failed to send WhatsApp message:', err);
+    console.error('[Wapilot] Failed to send message:', err);
   }
+}
+
+// ─── Customer: booking confirmation ───────────────────────────────────────
+
+/**
+ * Sends a WhatsApp confirmation to the customer.
+ * Non-blocking — failures are logged, booking is never affected.
+ */
+export async function sendBookingConfirmation(payload: BookingConfirmationPayload): Promise<void> {
+  await sendWapilotMessage(payload.whatsapp, buildCustomerMessage(payload));
+}
+
+// ─── Admin: instant new-booking alert ─────────────────────────────────────
+
+/**
+ * Notifies the admin immediately when a new booking arrives.
+ */
+export async function sendAdminNewBookingAlert(payload: BookingConfirmationPayload): Promise<void> {
+  const adminPhone = process.env.ADMIN_PHONE;
+  if (!adminPhone) {
+    console.warn('[Wapilot] ADMIN_PHONE not set — skipping admin alert.');
+    return;
+  }
+
+  const msg =
+    `🔔 *حجز جديد!*\n\n` +
+    `👤 *الاسم:* ${payload.fullName}\n` +
+    `📞 *الهاتف:* ${payload.phone}\n` +
+    `📲 *واتساب:* ${payload.whatsapp}\n` +
+    `🌍 *الجنسية:* ${payload.nationality}\n` +
+    `🏄 *النشاط:* ${payload.activityName}\n` +
+    `✈️ *تاريخ الوصول:* ${payload.arrivalDate}\n` +
+    `📅 *تاريخ النشاط:* ${payload.preferredDate}\n` +
+    `👤 *البالغين:* ${payload.adults}   👶 *الأطفال:* ${payload.children}\n` +
+    (payload.specialRequests ? `📝 *طلبات خاصة:* ${payload.specialRequests}\n` : '');
+
+  await sendWapilotMessage(adminPhone, msg);
 }
