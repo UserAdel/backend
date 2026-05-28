@@ -55,6 +55,27 @@ function buildCustomerMessage(payload: BookingConfirmationPayload): string {
 
 // ─── Shared low-level sender ───────────────────────────────────────────────
 
+function normalisePhoneForWapilot(phone: string): string {
+  let normalised = phone.trim().replace(/[^\d+]/g, '');
+
+  if (normalised.startsWith('+')) {
+    normalised = normalised.substring(1);
+  }
+
+  if (normalised.startsWith('00')) {
+    normalised = normalised.substring(2);
+  }
+
+  normalised = normalised.replace(/\D/g, '');
+
+  // If it's an Egyptian local number (starts with 01), add 20.
+  if (normalised.startsWith('01') && normalised.length === 11) {
+    normalised = `20${normalised.substring(1)}`;
+  }
+
+  return normalised;
+}
+
 export async function sendWapilotMessage(phone: string, message: string): Promise<void> {
   const instance = process.env.WAPILOT_INSTANCE;
   const token = process.env.WAPILOT_TOKEN;
@@ -64,9 +85,8 @@ export async function sendWapilotMessage(phone: string, message: string): Promis
     return;
   }
 
-  // Normalise: strip spaces/dashes, ensure leading +
-  let normalised = phone.replace(/[\s\-().]/g, '');
-  if (!normalised.startsWith('+')) normalised = `+${normalised}`;
+  const normalised = normalisePhoneForWapilot(phone);
+  // DO NOT add a leading + sign. Wapilot requires numbers without +.
 
   try {
     const res = await fetch(`${WAPILOT_API}/${instance}/send-message`, {
