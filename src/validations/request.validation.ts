@@ -6,7 +6,7 @@ export const createBookingRequestSchema = Joi.object({
   phone: Joi.string().trim().min(5).max(40).required(),
   whatsapp: Joi.string().trim().min(5).max(40).required(),
   nationality: Joi.string().trim().min(2).max(80).required(),
-  arrivalDate: Joi.string().trim().allow('').max(40).optional(),
+  arrivalDate: Joi.string().trim().required(),
   preferredDate: Joi.string().trim().required(),
   adults: Joi.number().integer().min(1).required(),
   children: Joi.number().integer().min(0).required(),

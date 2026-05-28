@@ -9,7 +9,7 @@ export interface BookingConfirmationPayload {
   fullName: string;
   whatsapp: string;
   activityName: string;
-  arrivalDate?: string;
+  arrivalDate: string;
   preferredDate: string;
   adults: number;
   children: number;
@@ -27,7 +27,7 @@ function buildMessage(payload: BookingConfirmationPayload): string {
       `Bonjour *${payload.fullName}*,\n\n` +
       `Merci pour votre réservation. Voici le résumé :\n\n` +
       `🏄 *Activité :* ${payload.activityName}\n` +
-      (payload.arrivalDate ? `✈️ *Date d'arrivée :* ${payload.arrivalDate}\n` : '') +
+      `✈️ *Date d'arrivée :* ${payload.arrivalDate}\n` +
       `📅 *Date souhaitée :* ${payload.preferredDate}\n` +
       `👤 *Adultes :* ${payload.adults}\n` +
       `👶 *Enfants :* ${payload.children}\n` +
@@ -42,7 +42,7 @@ function buildMessage(payload: BookingConfirmationPayload): string {
     `Hello *${payload.fullName}*,\n\n` +
     `Thank you for your booking request. Here's your summary:\n\n` +
     `🏄 *Activity:* ${payload.activityName}\n` +
-    (payload.arrivalDate ? `✈️ *Arrival Date:* ${payload.arrivalDate}\n` : '') +
+    `✈️ *Arrival Date:* ${payload.arrivalDate}\n` +
     `📅 *Preferred Date:* ${payload.preferredDate}\n` +
     `👤 *Adults:* ${payload.adults}\n` +
     `👶 *Children:* ${payload.children}\n` +

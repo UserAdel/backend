@@ -7,7 +7,7 @@ const bookingRequestSchema = new Schema(
     phone: { type: String, required: true, trim: true },
     whatsapp: { type: String, required: true, trim: true },
     nationality: { type: String, required: true, trim: true },
-    arrivalDate: { type: String, trim: true },
+    arrivalDate: { type: String, required: true, trim: true },
     preferredDate: { type: String, required: true, trim: true },
     adults: { type: Number, required: true, min: 1 },
     children: { type: Number, required: true, min: 0 },
