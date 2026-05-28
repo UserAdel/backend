@@ -40,7 +40,7 @@ function humanizeFieldPath(path: (string | number)[]): string {
       const readable = String(segment)
         .replace(/([a-z])([A-Z])/g, '$1 $2')
         .replace(/^./, (c) => c.toUpperCase());
-      parts.push(fieldLabels[segment] || readable);
+      parts.push(fieldLabels[String(segment)] || readable);
     }
   }
 

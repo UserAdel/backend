@@ -5,6 +5,7 @@ import AppError from '../utils/AppError.util.js';
 import { Activity } from '../models/activity.model.js';
 import { BookingRequest } from '../models/bookingRequest.model.js';
 import { ContactRequest } from '../models/contactRequest.model.js';
+import { sendBookingConfirmation } from '../services/wapilot.service.js';
 
 export const createBookingRequest = asyncHandler(async (req: Request, res: Response) => {
   const activity = await Activity.findOne({
@@ -19,6 +20,20 @@ export const createBookingRequest = asyncHandler(async (req: Request, res: Respo
   const booking = await BookingRequest.create({
     ...req.body,
     activityName: activity.name.en,
+  });
+
+  // Send WhatsApp confirmation — non-blocking, errors are swallowed inside the service
+  sendBookingConfirmation({
+    fullName: booking.fullName,
+    whatsapp: booking.whatsapp,
+    activityName: activity.name.en,
+    arrivalDate: booking.arrivalDate ?? '',
+    preferredDate: booking.preferredDate,
+    adults: booking.adults,
+    children: booking.children,
+    language: booking.language,
+    nationality: booking.nationality,
+    specialRequests: booking.specialRequests ?? '',
   });
 
   return successResponse(res, {
