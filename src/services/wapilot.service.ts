@@ -3,7 +3,7 @@
  * Docs: https://wapilot.io
  */
 
-const WAPILOT_API = 'https://app.wapilot.io/api/send-message';
+const WAPILOT_API = 'https://api.wapilot.net/api/v2';
 
 export interface BookingConfirmationPayload {
   fullName: string;
@@ -69,10 +69,13 @@ export async function sendWapilotMessage(phone: string, message: string): Promis
   if (!normalised.startsWith('+')) normalised = `+${normalised}`;
 
   try {
-    const res = await fetch(WAPILOT_API, {
+    const res = await fetch(`${WAPILOT_API}/${instance}/send-message`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ instance, token, phone: normalised, message }),
+      headers: { 
+        'Content-Type': 'application/json',
+        'token': token 
+      },
+      body: JSON.stringify({ chat_id: normalised, text: message }),
     });
 
     if (!res.ok) {
