@@ -8,6 +8,13 @@ import { ActivityCategory } from '../models/activityCategory.model.js';
 import { BookingRequest } from '../models/bookingRequest.model.js';
 import { ContactRequest } from '../models/contactRequest.model.js';
 import { deleteFile, getRelativePathFromUrl } from '../utils/fileSystem.util.js';
+import {
+  deleteS3ObjectByUrl,
+  getS3UploadUrl,
+  uploadFileToS3,
+} from '../services/s3Storage.service.js';
+
+const activityUploadFolders = ['activities'];
 
 function getUploadedFilesByField(req: Request) {
   const files = req.files as
@@ -28,8 +35,11 @@ function getUploadedFilesByField(req: Request) {
 function applyUploadedActivityImage(req: Request) {
   const files = getUploadedFilesByField(req);
   const mainImage = files?.image?.[0];
-  const imageUrl = mainImage ? `/uploads/activities/${mainImage.filename}` : req.body.imageUrl;
-  const uploadedGalleryImages = files?.gallery?.map((file) => `/uploads/activities/${file.filename}`) ?? [];
+  const imageUrl = mainImage
+    ? getS3UploadUrl(mainImage, activityUploadFolders)
+    : req.body.imageUrl;
+  const uploadedGalleryImages =
+    files?.gallery?.map((file) => getS3UploadUrl(file, activityUploadFolders)) ?? [];
   const videoHighlights = (req.body.videoHighlights ?? []).map(
     (video: Record<string, unknown>, index: number) => {
       const thumbnailFile = files?.[`videoThumbnail_${index}`]?.[0];
@@ -37,7 +47,7 @@ function applyUploadedActivityImage(req: Request) {
       return {
         ...video,
         ...(thumbnailFile
-          ? { thumbnail: `/uploads/activities/${thumbnailFile.filename}` }
+          ? { thumbnail: getS3UploadUrl(thumbnailFile, activityUploadFolders) }
           : {}),
       };
     }
@@ -49,7 +59,7 @@ function applyUploadedActivityImage(req: Request) {
       return {
         ...videoReview,
         ...(thumbnailFile
-          ? { thumbnail: `/uploads/activities/${thumbnailFile.filename}` }
+          ? { thumbnail: getS3UploadUrl(thumbnailFile, activityUploadFolders) }
           : {}),
       };
     }
@@ -67,13 +77,42 @@ function applyUploadedActivityImage(req: Request) {
   };
 }
 
-async function deletePreviousUploadedImage(imageUrl: string | undefined) {
-  if (!imageUrl || !imageUrl.startsWith('/uploads/')) return;
+function getAllUploadedFiles(req: Request) {
+  return Object.values(getUploadedFilesByField(req)).flat();
+}
 
+async function deleteStoredActivityImage(imageUrl: string | undefined) {
+  if (!imageUrl) return;
   const relativePath = getRelativePathFromUrl(imageUrl);
-  if (!relativePath) return;
 
-  await deleteFile(path.resolve('public', relativePath));
+  if (relativePath?.startsWith('uploads/')) {
+    await deleteFile(path.resolve('public', relativePath));
+    return;
+  }
+
+  await deleteS3ObjectByUrl(imageUrl);
+}
+
+async function deleteStoredActivityImages(imageUrls: string[]) {
+  await Promise.all(
+    Array.from(new Set(imageUrls)).map((imageUrl) => deleteStoredActivityImage(imageUrl))
+  );
+}
+
+async function uploadActivityImages(req: Request) {
+  const files = getAllUploadedFiles(req);
+  const uploadedImageUrls: string[] = [];
+
+  try {
+    for (const file of files) {
+      uploadedImageUrls.push(await uploadFileToS3(file, activityUploadFolders));
+    }
+  } catch (error) {
+    await deleteStoredActivityImages(uploadedImageUrls);
+    throw error;
+  }
+
+  return uploadedImageUrls;
 }
 
 async function deleteRemovedUploadedGalleryImages(
@@ -85,7 +124,7 @@ async function deleteRemovedUploadedGalleryImages(
     (imageUrl) => !retainedImages.has(imageUrl)
   );
 
-  await Promise.all(removedImages.map((imageUrl) => deletePreviousUploadedImage(imageUrl)));
+  await Promise.all(removedImages.map((imageUrl) => deleteStoredActivityImage(imageUrl)));
 }
 
 async function deleteRemovedUploadedVideoThumbnails(
@@ -102,7 +141,7 @@ async function deleteRemovedUploadedVideoThumbnails(
     .filter((thumbnail): thumbnail is string => Boolean(thumbnail))
     .filter((thumbnail) => !nextThumbnails.has(thumbnail));
 
-  await Promise.all(removedThumbnails.map((thumbnail) => deletePreviousUploadedImage(thumbnail)));
+  await Promise.all(removedThumbnails.map((thumbnail) => deleteStoredActivityImage(thumbnail)));
 }
 
 export const getAdminDashboard = asyncHandler(async (req: Request, res: Response) => {
@@ -190,10 +229,18 @@ export const deleteActivityCategory = asyncHandler(async (req: Request, res: Res
 });
 
 export const createActivity = asyncHandler(async (req: Request, res: Response) => {
-  const activity = await Activity.create({
-    ...applyUploadedActivityImage(req),
-    isActive: req.body.isActive ?? true,
-  });
+  const uploadedImageUrls = await uploadActivityImages(req);
+  let activity;
+
+  try {
+    activity = await Activity.create({
+      ...applyUploadedActivityImage(req),
+      isActive: req.body.isActive ?? true,
+    });
+  } catch (error) {
+    await deleteStoredActivityImages(uploadedImageUrls);
+    throw error;
+  }
 
   return successResponse(res, {
     message: 'Activity created',
@@ -232,19 +279,28 @@ export const updateActivity = asyncHandler(async (req: Request, res: Response) =
     throw new AppError('Activity not found', 404);
   }
 
+  const uploadedImageUrls = await uploadActivityImages(req);
   const updatePayload = applyUploadedActivityImage(req);
-  const activity = await Activity.findByIdAndUpdate(activityId, updatePayload, {
-    returnDocument: 'after',
-    runValidators: true,
-  });
+  let activity;
+
+  try {
+    activity = await Activity.findByIdAndUpdate(activityId, updatePayload, {
+      returnDocument: 'after',
+      runValidators: true,
+    });
+  } catch (error) {
+    await deleteStoredActivityImages(uploadedImageUrls);
+    throw error;
+  }
 
   if (!activity) {
+    await deleteStoredActivityImages(uploadedImageUrls);
     throw new AppError('Activity not found', 404);
   }
 
   const files = getUploadedFilesByField(req);
   if (files?.image?.[0] && previousActivity.imageUrl !== activity.imageUrl) {
-    await deletePreviousUploadedImage(previousActivity.imageUrl);
+    await deleteStoredActivityImage(previousActivity.imageUrl);
   }
 
   await deleteRemovedUploadedGalleryImages(

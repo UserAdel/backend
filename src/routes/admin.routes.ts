@@ -24,14 +24,35 @@ import {
 } from '../validations/request.validation.js';
 import multerMiddleware from '../middlewares/multer.middleware.js';
 import { requireAdminAuth } from '../middlewares/adminAuth.middleware.js';
+import { ensureS3UploadMetadata, getS3UploadUrl } from '../services/s3Storage.service.js';
 import type { Request, Response, NextFunction } from 'express';
 
 const router = Router();
+const activityUploadFolders = ['activities'];
 const activityImageUpload = multerMiddleware({
-  getPath: () => ['activities'],
   allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
   maxFileSize: 5 * 1024 * 1024,
 });
+
+function getUploadedFilesByField(req: Request) {
+  const uploadedFiles = req.files as
+    | Express.Multer.File[]
+    | { [fieldname: string]: Express.Multer.File[] }
+    | undefined;
+
+  return Array.isArray(uploadedFiles)
+    ? uploadedFiles.reduce<Record<string, Express.Multer.File[]>>((filesByField, file) => {
+        filesByField[file.fieldname] = [...(filesByField[file.fieldname] ?? []), file];
+        return filesByField;
+      }, {})
+    : uploadedFiles ?? {};
+}
+
+function prepareS3UploadMetadata(files: Record<string, Express.Multer.File[]>) {
+  Object.values(files)
+    .flat()
+    .forEach((file) => ensureS3UploadMetadata(file, activityUploadFolders));
+}
 
 function parseActivityPayload(req: Request, res: Response, next: NextFunction) {
   if (typeof req.body.payload === 'string') {
@@ -45,19 +66,17 @@ function parseActivityPayload(req: Request, res: Response, next: NextFunction) {
     }
   }
 
-  const uploadedFiles = req.files as
-    | Express.Multer.File[]
-    | { [fieldname: string]: Express.Multer.File[] }
-    | undefined;
-  const files = Array.isArray(uploadedFiles)
-    ? uploadedFiles.reduce<Record<string, Express.Multer.File[]>>((filesByField, file) => {
-        filesByField[file.fieldname] = [...(filesByField[file.fieldname] ?? []), file];
-        return filesByField;
-      }, {})
-    : uploadedFiles;
+  const files = getUploadedFilesByField(req);
 
-  if (files?.image?.[0] && !req.body.imageUrl) {
-    req.body.imageUrl = `/uploads/activities/${files.image[0].filename}`;
+  try {
+    prepareS3UploadMetadata(files);
+
+    if (files.image?.[0] && !req.body.imageUrl) {
+      req.body.imageUrl = getS3UploadUrl(files.image[0], activityUploadFolders);
+    }
+  } catch (error) {
+    next(error);
+    return;
   }
 
   if (!Array.isArray(req.body.galleryImages)) {
