@@ -117,6 +117,7 @@ export const activityAdminSchema = Joi.object({
   groupAvailable: Joi.boolean().required(),
   videoHighlights: Joi.array().items(videoHighlightSchema).optional(),
   videoReviews: Joi.array().items(videoReviewSchema).optional(),
+  seoKeywords: Joi.array().items(Joi.string().trim().max(120)).optional(),
   isActive: Joi.boolean().optional(),
 });
 

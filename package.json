@@ -8,7 +8,8 @@
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "build": "npm install && npx tsc",
     "dev": "cross-env NODE_ENV=development tsx watch src/index.ts",
-    "seed": "cross-env NODE_ENV=development tsx src/db/seed.ts"
+    "seed": "cross-env NODE_ENV=development tsx src/db/seed.ts",
+    "seed:odt": "cross-env NODE_ENV=development tsx src/db/seedFromOdt.ts"
   },
   "keywords": [],
   "author": "",

@@ -116,6 +116,7 @@ const activitySchema = new Schema(
     reviews: { type: [activityReviewSchema], default: [] },
     videoHighlights: { type: [activityVideoHighlightSchema], default: [] },
     videoReviews: { type: [activityVideoReviewSchema], default: [] },
+    seoKeywords: { type: [{ type: String, trim: true, maxlength: 120 }], default: [] },
     isActive: { type: Boolean, default: true, index: true },
   },
   {
