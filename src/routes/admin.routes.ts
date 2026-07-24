@@ -13,6 +13,8 @@ import {
   updateActivityReview,
   updateBookingRequest,
   updateContactRequest,
+  getSystemSettings,
+  updateSystemSettings,
 } from '../controllers/admin.controller.js';
 import { validateRequest } from '../middlewares/validation.middleware.js';
 import {
@@ -147,5 +149,7 @@ router.delete('/admin/activities/:id/reviews/:reviewId', deleteActivityReview);
 router.patch('/admin/bookings/:id', validateRequest(updateBookingRequestSchema), updateBookingRequest);
 router.patch('/admin/contacts/:id', validateRequest(updateContactRequestSchema), updateContactRequest);
 router.delete('/admin/contacts/:id', deleteContactRequest);
+router.get('/admin/settings', getSystemSettings);
+router.patch('/admin/settings', updateSystemSettings);
 
 export default router;

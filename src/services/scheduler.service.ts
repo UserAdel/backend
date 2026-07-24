@@ -5,7 +5,7 @@
 
 import cron from 'node-cron';
 import { BookingRequest } from '../models/bookingRequest.model.js';
-import { sendWapilotMessage } from './wapilot.service.js';
+import { sendWhatsappMessage } from './whatsapp.service.js';
 
 function getTomorrowDateString(): string {
   const tomorrow = new Date();
@@ -33,7 +33,7 @@ async function sendDailyDigest(): Promise<void> {
 
   if (bookings.length === 0) {
     const msg = `📋 *مواعيد النشاطات ليوم ${tomorrow}*\n\nلا يوجد نشاطات مجدولة لغداً. ✅`;
-    await sendWapilotMessage(adminPhone, msg);
+    await sendWhatsappMessage(adminPhone, msg);
     return;
   }
 
@@ -59,7 +59,7 @@ async function sendDailyDigest(): Promise<void> {
 
   msg += `\nصباح الخير! يوم سعيد 🌊`;
 
-  await sendWapilotMessage(adminPhone, msg);
+  await sendWhatsappMessage(adminPhone, msg);
   console.log(`[Scheduler] Daily digest sent for ${tomorrow} (${bookings.length} bookings)`);
 }
 

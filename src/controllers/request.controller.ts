@@ -5,7 +5,7 @@ import AppError from '../utils/AppError.util.js';
 import { Activity } from '../models/activity.model.js';
 import { BookingRequest } from '../models/bookingRequest.model.js';
 import { ContactRequest } from '../models/contactRequest.model.js';
-import { sendBookingConfirmation, sendAdminNewBookingAlert } from '../services/wapilot.service.js';
+import { sendBookingConfirmation, sendAdminNewBookingAlert } from '../services/whatsapp.service.js';
 
 export const createBookingRequest = asyncHandler(async (req: Request, res: Response) => {
   const activity = await Activity.findOne({
