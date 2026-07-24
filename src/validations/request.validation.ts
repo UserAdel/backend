@@ -124,5 +124,6 @@ export const activityAdminSchema = Joi.object({
 export const activityCategoryAdminSchema = Joi.object({
   id: Joi.string().trim().lowercase().min(2).max(120).required(),
   name: localizedStringSchema.required(),
+  image: Joi.string().trim().allow('').optional(),
   isActive: Joi.boolean().optional(),
 });

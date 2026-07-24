@@ -12,6 +12,7 @@ const activityCategorySchema = new Schema(
   {
     id: { type: String, required: true, unique: true, trim: true },
     name: { type: localizedStringSchema, required: true },
+    image: { type: String, default: '' },
     isActive: { type: Boolean, default: true, index: true },
   },
   {

@@ -94,11 +94,37 @@ function parseActivityPayload(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+function parseCategoryPayload(req: Request, res: Response, next: NextFunction) {
+  if (typeof req.body.payload === 'string') {
+    try {
+      req.body = JSON.parse(req.body.payload);
+    } catch {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid category payload',
+      });
+    }
+  }
+  next();
+}
+
 router.use('/admin', requireAdminAuth);
 
 router.get('/admin/dashboard', getAdminDashboard);
-router.post('/admin/activity-categories', validateRequest(activityCategoryAdminSchema), createActivityCategory);
-router.patch('/admin/activity-categories/:id', validateRequest(activityCategoryAdminSchema), updateActivityCategory);
+router.post(
+  '/admin/activity-categories',
+  activityImageUpload.any(),
+  parseCategoryPayload,
+  validateRequest(activityCategoryAdminSchema),
+  createActivityCategory
+);
+router.patch(
+  '/admin/activity-categories/:id',
+  activityImageUpload.any(),
+  parseCategoryPayload,
+  validateRequest(activityCategoryAdminSchema),
+  updateActivityCategory
+);
 router.delete('/admin/activity-categories/:id', deleteActivityCategory);
 router.post(
   '/admin/activities',

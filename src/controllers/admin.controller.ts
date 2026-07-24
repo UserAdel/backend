@@ -171,8 +171,12 @@ export const getAdminDashboard = asyncHandler(async (req: Request, res: Response
 });
 
 export const createActivityCategory = asyncHandler(async (req: Request, res: Response) => {
+  const uploadedImageUrls = await uploadActivityImages(req);
+  const categoryImage = uploadedImageUrls[0] || req.body.image || '';
+
   const category = await ActivityCategory.create({
     ...req.body,
+    image: categoryImage,
     isActive: req.body.isActive ?? true,
   });
 
@@ -190,7 +194,13 @@ export const updateActivityCategory = asyncHandler(async (req: Request, res: Res
     throw new AppError('Activity category id is required', 400);
   }
 
-  const category = await ActivityCategory.findByIdAndUpdate(categoryId, req.body, {
+  const uploadedImageUrls = await uploadActivityImages(req);
+  const updatePayload = { ...req.body };
+  if (uploadedImageUrls.length > 0) {
+    updatePayload.image = uploadedImageUrls[0];
+  }
+
+  const category = await ActivityCategory.findByIdAndUpdate(categoryId, updatePayload, {
     returnDocument: 'after',
     runValidators: true,
   });
