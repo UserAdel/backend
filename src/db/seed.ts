@@ -5,6 +5,7 @@ import { Activity } from '../models/activity.model.js';
 import { ActivityCategory } from '../models/activityCategory.model.js';
 import { AdminUser } from '../models/adminUser.model.js';
 import { loadStaticActivitySeedData } from '../services/staticActivitySeed.service.js';
+import { seedDefaultTestimonials } from '../services/testimonialSeed.service.js';
 
 // Setup environment
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
@@ -49,6 +50,9 @@ const seedDatabase = async () => {
     );
 
     console.log(`✅ Seeded ${categories.length} activity categories from frontend static data.`);
+
+    const testimonialCount = await seedDefaultTestimonials();
+    console.log(`✅ Seeded ${testimonialCount} homepage testimonials.`);
 
     const passwordHash = await bcrypt.hash(DEFAULT_ADMIN.password, 12);
     await AdminUser.findOneAndUpdate(

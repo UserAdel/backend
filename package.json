@@ -9,6 +9,7 @@
     "build": "npm install && npx tsc",
     "dev": "cross-env NODE_ENV=development tsx watch src/index.ts",
     "seed": "cross-env NODE_ENV=development tsx src/db/seed.ts",
+    "seed:testimonials": "cross-env NODE_ENV=development tsx src/db/seedTestimonials.ts",
     "seed:odt": "cross-env NODE_ENV=development tsx src/db/seedFromOdt.ts"
   },
   "keywords": [],

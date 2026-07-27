@@ -8,6 +8,7 @@ import activityRoutes from './routes/activity.routes.js';
 import requestRoutes from './routes/request.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import testimonialRoutes from './routes/testimonial.routes.js';
 import { startDailyDigestScheduler } from './services/scheduler.service.js';
 
 const env = {
@@ -49,6 +50,7 @@ app.use('/api', activityRoutes);
 app.use('/api', requestRoutes);
 app.use('/api', authRoutes);
 app.use('/api', adminRoutes);
+app.use('/api', testimonialRoutes);
 
 // Global Error Handler 
 app.use(globalErrorHandler);

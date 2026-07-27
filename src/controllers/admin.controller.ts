@@ -8,6 +8,7 @@ import { ActivityCategory } from '../models/activityCategory.model.js';
 import { BookingRequest } from '../models/bookingRequest.model.js';
 import { ContactRequest } from '../models/contactRequest.model.js';
 import { SystemSetting } from '../models/systemSetting.model.js';
+import { Testimonial } from '../models/testimonial.model.js';
 import { deleteFile, getRelativePathFromUrl } from '../utils/fileSystem.util.js';
 import {
   deleteS3ObjectByUrl,
@@ -145,12 +146,13 @@ async function deleteRemovedUploadedVideoThumbnails(
   await Promise.all(removedThumbnails.map((thumbnail) => deleteStoredActivityImage(thumbnail)));
 }
 
-export const getAdminDashboard = asyncHandler(async (req: Request, res: Response) => {
-  const [bookings, contacts, activities, categories] = await Promise.all([
+export const getAdminDashboard = asyncHandler(async (_req: Request, res: Response) => {
+  const [bookings, contacts, activities, categories, testimonials] = await Promise.all([
     BookingRequest.find().sort({ createdAt: -1 }).lean(),
     ContactRequest.find().sort({ createdAt: -1 }).lean(),
     Activity.find().sort({ isActive: -1, featured: -1, 'name.en': 1 }).lean(),
     ActivityCategory.find().sort({ isActive: -1, 'name.en': 1 }).lean(),
+    Testimonial.find().sort({ sortOrder: 1, createdAt: 1 }).lean(),
   ]);
 
   return successResponse(res, {
@@ -162,12 +164,66 @@ export const getAdminDashboard = asyncHandler(async (req: Request, res: Response
         contacts: contacts.length,
         newContacts: contacts.filter((contact) => contact.status === 'new').length,
         categories: categories.filter((category) => category.isActive).length,
+        testimonials: testimonials.filter((testimonial) => testimonial.isActive).length,
       },
       bookings,
       contacts,
       activities,
       categories,
+      testimonials,
     },
+  });
+});
+
+export const createTestimonial = asyncHandler(async (req: Request, res: Response) => {
+  const testimonial = await Testimonial.create(req.body);
+
+  return successResponse(res, {
+    message: 'Testimonial created',
+    statusCode: 201,
+    data: { testimonial },
+  });
+});
+
+export const updateTestimonial = asyncHandler(async (req: Request, res: Response) => {
+  const testimonialId = req.params.id;
+
+  if (!testimonialId) {
+    throw new AppError('Testimonial id is required', 400);
+  }
+
+  const testimonial = await Testimonial.findByIdAndUpdate(
+    testimonialId,
+    req.body,
+    { returnDocument: 'after', runValidators: true }
+  );
+
+  if (!testimonial) {
+    throw new AppError('Testimonial not found', 404);
+  }
+
+  return successResponse(res, {
+    message: 'Testimonial updated',
+    data: { testimonial },
+  });
+});
+
+export const deleteTestimonial = asyncHandler(async (req: Request, res: Response) => {
+  const testimonialId = req.params.id;
+
+  if (!testimonialId) {
+    throw new AppError('Testimonial id is required', 400);
+  }
+
+  const testimonial = await Testimonial.findByIdAndDelete(testimonialId);
+
+  if (!testimonial) {
+    throw new AppError('Testimonial not found', 404);
+  }
+
+  return successResponse(res, {
+    message: 'Testimonial deleted',
+    data: { testimonial },
   });
 });
 

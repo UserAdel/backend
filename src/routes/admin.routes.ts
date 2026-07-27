@@ -6,6 +6,7 @@ import {
   deleteActivity,
   deleteActivityReview,
   deleteContactRequest,
+  deleteTestimonial,
   getAdminActivity,
   getAdminDashboard,
   updateActivityCategory,
@@ -14,6 +15,8 @@ import {
   updateBookingRequest,
   updateContactRequest,
   getSystemSettings,
+  createTestimonial,
+  updateTestimonial,
   updateSystemSettings,
 } from '../controllers/admin.controller.js';
 import { validateRequest } from '../middlewares/validation.middleware.js';
@@ -23,6 +26,7 @@ import {
   activityReviewSchema,
   updateBookingRequestSchema,
   updateContactRequestSchema,
+  testimonialAdminSchema,
 } from '../validations/request.validation.js';
 import multerMiddleware from '../middlewares/multer.middleware.js';
 import { requireAdminAuth } from '../middlewares/adminAuth.middleware.js';
@@ -113,6 +117,17 @@ function parseCategoryPayload(req: Request, res: Response, next: NextFunction) {
 router.use('/admin', requireAdminAuth);
 
 router.get('/admin/dashboard', getAdminDashboard);
+router.post(
+  '/admin/testimonials',
+  validateRequest(testimonialAdminSchema),
+  createTestimonial
+);
+router.patch(
+  '/admin/testimonials/:id',
+  validateRequest(testimonialAdminSchema),
+  updateTestimonial
+);
+router.delete('/admin/testimonials/:id', deleteTestimonial);
 router.post(
   '/admin/activity-categories',
   activityImageUpload.any(),

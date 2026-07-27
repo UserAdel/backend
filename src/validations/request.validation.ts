@@ -43,6 +43,18 @@ const localizedStringSchema = Joi.object({
   fr: Joi.string().trim().min(1).max(5000).required(),
 });
 
+export const testimonialAdminSchema = Joi.object({
+  name: Joi.string().trim().min(2).max(120).required(),
+  rating: Joi.number().integer().min(1).max(5).required(),
+  text: localizedStringSchema.required(),
+  activity: Joi.object({
+    en: Joi.string().trim().min(1).max(180).required(),
+    fr: Joi.string().trim().min(1).max(180).required(),
+  }).required(),
+  sortOrder: Joi.number().integer().min(0).required(),
+  isActive: Joi.boolean().required(),
+});
+
 const localizedListSchema = Joi.object({
   en: Joi.array().items(Joi.string().trim().min(1)).default([]),
   fr: Joi.array().items(Joi.string().trim().min(1)).default([]),
