@@ -28,6 +28,10 @@ export const activityReviewSchema = Joi.object({
   comment: Joi.string().trim().min(5).max(2000).required(),
 });
 
+export const activityReviewApprovalSchema = Joi.object({
+  isApproved: Joi.boolean().required(),
+});
+
 export const updateBookingRequestSchema = Joi.object({
   status: Joi.string().valid('pending', 'new', 'contacted', 'confirmed', 'cancelled').required(),
   adminNotes: Joi.string().trim().allow('').max(1500).optional(),

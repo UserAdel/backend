@@ -11,6 +11,7 @@ import {
   getAdminDashboard,
   updateActivityCategory,
   updateActivity,
+  updateActivityReviewApproval,
   updateActivityReview,
   updateBookingRequest,
   updateContactRequest,
@@ -23,6 +24,7 @@ import { validateRequest } from '../middlewares/validation.middleware.js';
 import {
   activityAdminSchema,
   activityCategoryAdminSchema,
+  activityReviewApprovalSchema,
   activityReviewSchema,
   updateBookingRequestSchema,
   updateContactRequestSchema,
@@ -160,6 +162,11 @@ router.patch(
 );
 router.delete('/admin/activities/:id', deleteActivity);
 router.patch('/admin/activities/:id/reviews/:reviewId', validateRequest(activityReviewSchema), updateActivityReview);
+router.patch(
+  '/admin/activities/:id/reviews/:reviewId/approval',
+  validateRequest(activityReviewApprovalSchema),
+  updateActivityReviewApproval
+);
 router.delete('/admin/activities/:id/reviews/:reviewId', deleteActivityReview);
 router.patch('/admin/bookings/:id', validateRequest(updateBookingRequestSchema), updateBookingRequest);
 router.patch('/admin/contacts/:id', validateRequest(updateContactRequestSchema), updateContactRequest);

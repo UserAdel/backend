@@ -5,6 +5,15 @@ import AppError from '../utils/AppError.util.js';
 import { Activity } from '../models/activity.model.js';
 import { ActivityCategory } from '../models/activityCategory.model.js';
 
+function withApprovedReviews<ActivityType extends { reviews?: Array<{ isApproved?: boolean }> }>(
+  activity: ActivityType
+) {
+  return {
+    ...activity,
+    reviews: (activity.reviews ?? []).filter((review) => review.isApproved !== false),
+  };
+}
+
 export const getActivities = asyncHandler(async (req: Request, res: Response) => {
   const { category, featured } = req.query;
   const filter: Record<string, unknown> = { isActive: true };
@@ -22,7 +31,7 @@ export const getActivities = asyncHandler(async (req: Request, res: Response) =>
     .lean();
 
   return successResponse(res, {
-    data: { activities },
+    data: { activities: activities.map(withApprovedReviews) },
   });
 });
 
@@ -43,7 +52,7 @@ export const getActivityBySlug = asyncHandler(async (req: Request, res: Response
   }
 
   return successResponse(res, {
-    data: { activity },
+    data: { activity: withApprovedReviews(activity) },
   });
 });
 
@@ -69,6 +78,7 @@ export const createActivityReview = asyncHandler(async (req: Request, res: Respo
     rating: req.body.rating,
     comment: req.body.comment,
     date: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+    isApproved: false,
   });
 
   await activity.save();
@@ -76,7 +86,7 @@ export const createActivityReview = asyncHandler(async (req: Request, res: Respo
   const review = activity.reviews[activity.reviews.length - 1];
 
   return successResponse(res, {
-    message: 'Review added',
+    message: 'Review submitted for approval',
     statusCode: 201,
     data: { review },
   });

@@ -52,6 +52,7 @@ const activityReviewSchema = new Schema(
     rating: { type: Number, required: true, min: 1, max: 5 },
     comment: { type: String, required: true, trim: true, maxlength: 2000 },
     date: { type: String, trim: true, maxlength: 80 },
+    isApproved: { type: Boolean, default: true },
   },
   {
     timestamps: true,

@@ -448,6 +448,39 @@ export const updateActivityReview = asyncHandler(async (req: Request, res: Respo
   });
 });
 
+export const updateActivityReviewApproval = asyncHandler(async (req: Request, res: Response) => {
+  const activityId = req.params.id;
+  const reviewId = req.params.reviewId;
+
+  if (!activityId || !reviewId) {
+    throw new AppError('Activity id and review id are required', 400);
+  }
+
+  const activity = await Activity.findOneAndUpdate(
+    { _id: activityId, 'reviews._id': reviewId },
+    {
+      $set: {
+        'reviews.$.isApproved': req.body.isApproved,
+      },
+    },
+    { returnDocument: 'after', runValidators: true }
+  );
+
+  if (!activity) {
+    throw new AppError('Activity review not found', 404);
+  }
+
+  const review = activity.reviews.find((item) => {
+    const itemId = (item as { _id?: unknown })._id;
+    return itemId?.toString() === reviewId;
+  });
+
+  return successResponse(res, {
+    message: req.body.isApproved ? 'Activity review approved' : 'Activity review hidden',
+    data: { review },
+  });
+});
+
 export const deleteActivityReview = asyncHandler(async (req: Request, res: Response) => {
   const activityId = req.params.id;
   const reviewId = req.params.reviewId;
