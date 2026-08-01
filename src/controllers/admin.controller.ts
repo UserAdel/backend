@@ -1,5 +1,4 @@
 import type { Request, Response } from 'express';
-import path from 'node:path';
 import { asyncHandler } from '../utils/globalErrorHandler.util.js';
 import { successResponse } from '../utils/response.util.js';
 import AppError from '../utils/AppError.util.js';
@@ -9,12 +8,10 @@ import { BookingRequest } from '../models/bookingRequest.model.js';
 import { ContactRequest } from '../models/contactRequest.model.js';
 import { SystemSetting } from '../models/systemSetting.model.js';
 import { Testimonial } from '../models/testimonial.model.js';
-import { deleteFile, getRelativePathFromUrl } from '../utils/fileSystem.util.js';
 import {
-  deleteS3ObjectByUrl,
-  getS3UploadUrl,
-  uploadFileToS3,
-} from '../services/s3Storage.service.js';
+  deleteLocalUploadByUrl,
+  getLocalUploadUrl,
+} from '../services/localUpload.service.js';
 
 const activityUploadFolders = ['activities'];
 
@@ -38,10 +35,10 @@ function applyUploadedActivityImage(req: Request) {
   const files = getUploadedFilesByField(req);
   const mainImage = files?.image?.[0];
   const imageUrl = mainImage
-    ? getS3UploadUrl(mainImage, activityUploadFolders)
+    ? getLocalUploadUrl(mainImage, activityUploadFolders)
     : req.body.imageUrl;
   const uploadedGalleryImages =
-    files?.gallery?.map((file) => getS3UploadUrl(file, activityUploadFolders)) ?? [];
+    files?.gallery?.map((file) => getLocalUploadUrl(file, activityUploadFolders)) ?? [];
   const videoHighlights = (req.body.videoHighlights ?? []).map(
     (video: Record<string, unknown>, index: number) => {
       const thumbnailFile = files?.[`videoThumbnail_${index}`]?.[0];
@@ -49,7 +46,7 @@ function applyUploadedActivityImage(req: Request) {
       return {
         ...video,
         ...(thumbnailFile
-          ? { thumbnail: getS3UploadUrl(thumbnailFile, activityUploadFolders) }
+          ? { thumbnail: getLocalUploadUrl(thumbnailFile, activityUploadFolders) }
           : {}),
       };
     }
@@ -61,7 +58,7 @@ function applyUploadedActivityImage(req: Request) {
       return {
         ...videoReview,
         ...(thumbnailFile
-          ? { thumbnail: getS3UploadUrl(thumbnailFile, activityUploadFolders) }
+          ? { thumbnail: getLocalUploadUrl(thumbnailFile, activityUploadFolders) }
           : {}),
       };
     }
@@ -85,14 +82,7 @@ function getAllUploadedFiles(req: Request) {
 
 async function deleteStoredActivityImage(imageUrl: string | undefined) {
   if (!imageUrl) return;
-  const relativePath = getRelativePathFromUrl(imageUrl);
-
-  if (relativePath?.startsWith('uploads/')) {
-    await deleteFile(path.resolve('public', relativePath));
-    return;
-  }
-
-  await deleteS3ObjectByUrl(imageUrl);
+  await deleteLocalUploadByUrl(imageUrl);
 }
 
 async function deleteStoredActivityImages(imageUrls: string[]) {
@@ -101,20 +91,9 @@ async function deleteStoredActivityImages(imageUrls: string[]) {
   );
 }
 
-async function uploadActivityImages(req: Request) {
+function getUploadedActivityImageUrls(req: Request) {
   const files = getAllUploadedFiles(req);
-  const uploadedImageUrls: string[] = [];
-
-  try {
-    for (const file of files) {
-      uploadedImageUrls.push(await uploadFileToS3(file, activityUploadFolders));
-    }
-  } catch (error) {
-    await deleteStoredActivityImages(uploadedImageUrls);
-    throw error;
-  }
-
-  return uploadedImageUrls;
+  return files.map((file) => getLocalUploadUrl(file, activityUploadFolders));
 }
 
 async function deleteRemovedUploadedGalleryImages(
@@ -228,7 +207,7 @@ export const deleteTestimonial = asyncHandler(async (req: Request, res: Response
 });
 
 export const createActivityCategory = asyncHandler(async (req: Request, res: Response) => {
-  const uploadedImageUrls = await uploadActivityImages(req);
+  const uploadedImageUrls = getUploadedActivityImageUrls(req);
   const categoryImage = uploadedImageUrls[0] || req.body.image || '';
 
   const category = await ActivityCategory.create({
@@ -251,7 +230,7 @@ export const updateActivityCategory = asyncHandler(async (req: Request, res: Res
     throw new AppError('Activity category id is required', 400);
   }
 
-  const uploadedImageUrls = await uploadActivityImages(req);
+  const uploadedImageUrls = getUploadedActivityImageUrls(req);
   const updatePayload = { ...req.body };
   if (uploadedImageUrls.length > 0) {
     updatePayload.image = uploadedImageUrls[0];
@@ -296,7 +275,7 @@ export const deleteActivityCategory = asyncHandler(async (req: Request, res: Res
 });
 
 export const createActivity = asyncHandler(async (req: Request, res: Response) => {
-  const uploadedImageUrls = await uploadActivityImages(req);
+  const uploadedImageUrls = getUploadedActivityImageUrls(req);
   let activity;
 
   try {
@@ -346,7 +325,7 @@ export const updateActivity = asyncHandler(async (req: Request, res: Response) =
     throw new AppError('Activity not found', 404);
   }
 
-  const uploadedImageUrls = await uploadActivityImages(req);
+  const uploadedImageUrls = getUploadedActivityImageUrls(req);
   const updatePayload = applyUploadedActivityImage(req);
   let activity;
 

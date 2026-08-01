@@ -32,7 +32,11 @@ import {
 } from '../validations/request.validation.js';
 import multerMiddleware from '../middlewares/multer.middleware.js';
 import { requireAdminAuth } from '../middlewares/adminAuth.middleware.js';
-import { ensureS3UploadMetadata, getS3UploadUrl } from '../services/s3Storage.service.js';
+import {
+  deleteLocalUploadFile,
+  ensureLocalUploadMetadata,
+  getLocalUploadUrl,
+} from '../services/localUpload.service.js';
 import type { Request, Response, NextFunction } from 'express';
 
 const router = Router();
@@ -40,6 +44,7 @@ const activityUploadFolders = ['activities'];
 const activityImageUpload = multerMiddleware({
   allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
   maxFileSize: 5 * 1024 * 1024,
+  uploadFolders: activityUploadFolders,
 });
 
 function getUploadedFilesByField(req: Request) {
@@ -56,10 +61,26 @@ function getUploadedFilesByField(req: Request) {
     : uploadedFiles ?? {};
 }
 
-function prepareS3UploadMetadata(files: Record<string, Express.Multer.File[]>) {
+function prepareLocalUploadMetadata(files: Record<string, Express.Multer.File[]>) {
   Object.values(files)
     .flat()
-    .forEach((file) => ensureS3UploadMetadata(file, activityUploadFolders));
+    .forEach((file) => ensureLocalUploadMetadata(file, activityUploadFolders));
+}
+
+function cleanupLocalUploadsOnFailedResponse(req: Request, res: Response, next: NextFunction) {
+  res.on('finish', () => {
+    if (res.statusCode < 400) {
+      return;
+    }
+
+    void Promise.all(
+      Object.values(getUploadedFilesByField(req))
+        .flat()
+        .map((file) => deleteLocalUploadFile(file))
+    );
+  });
+
+  next();
 }
 
 function parseActivityPayload(req: Request, res: Response, next: NextFunction) {
@@ -77,10 +98,10 @@ function parseActivityPayload(req: Request, res: Response, next: NextFunction) {
   const files = getUploadedFilesByField(req);
 
   try {
-    prepareS3UploadMetadata(files);
+    prepareLocalUploadMetadata(files);
 
     if (files.image?.[0] && !req.body.imageUrl) {
-      req.body.imageUrl = getS3UploadUrl(files.image[0], activityUploadFolders);
+      req.body.imageUrl = getLocalUploadUrl(files.image[0], activityUploadFolders);
     }
   } catch (error) {
     next(error);
@@ -133,6 +154,7 @@ router.delete('/admin/testimonials/:id', deleteTestimonial);
 router.post(
   '/admin/activity-categories',
   activityImageUpload.any(),
+  cleanupLocalUploadsOnFailedResponse,
   parseCategoryPayload,
   validateRequest(activityCategoryAdminSchema),
   createActivityCategory
@@ -140,6 +162,7 @@ router.post(
 router.patch(
   '/admin/activity-categories/:id',
   activityImageUpload.any(),
+  cleanupLocalUploadsOnFailedResponse,
   parseCategoryPayload,
   validateRequest(activityCategoryAdminSchema),
   updateActivityCategory
@@ -148,6 +171,7 @@ router.delete('/admin/activity-categories/:id', deleteActivityCategory);
 router.post(
   '/admin/activities',
   activityImageUpload.any(),
+  cleanupLocalUploadsOnFailedResponse,
   parseActivityPayload,
   validateRequest(activityAdminSchema),
   createActivity
@@ -156,6 +180,7 @@ router.get('/admin/activities/:id', getAdminActivity);
 router.patch(
   '/admin/activities/:id',
   activityImageUpload.any(),
+  cleanupLocalUploadsOnFailedResponse,
   parseActivityPayload,
   validateRequest(activityAdminSchema),
   updateActivity

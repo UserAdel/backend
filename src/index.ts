@@ -10,6 +10,7 @@ import authRoutes from './routes/auth.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import testimonialRoutes from './routes/testimonial.routes.js';
 import { startDailyDigestScheduler } from './services/scheduler.service.js';
+import { uploadsRoot } from './services/localUpload.service.js';
 
 const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
@@ -35,7 +36,7 @@ app.use(
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static('public/uploads'));
+app.use('/uploads', express.static(uploadsRoot));
 
 // App routes
 app.get('/', (req: Request, res: Response) => {
