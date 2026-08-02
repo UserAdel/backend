@@ -70,6 +70,126 @@ function buildCustomerMessage(payload: BookingConfirmationPayload): string {
 
 // ─── Shared low-level sender ───────────────────────────────────────────────
 
+interface OpenWaSession {
+  id: string | undefined;
+  name: string | undefined;
+}
+
+function trimTrailingSlash(value: string): string {
+  return value.replace(/\/+$/, '');
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function getString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function buildWhatsappHeaders(apiKey: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (apiKey) {
+    headers.Authorization = `Bearer ${apiKey}`;
+    headers['x-api-key'] = apiKey;
+    headers['X-API-Key'] = apiKey;
+    headers.token = apiKey;
+  }
+
+  return headers;
+}
+
+async function readResponseText(res: Response): Promise<string> {
+  try {
+    return await res.text();
+  } catch {
+    return '';
+  }
+}
+
+async function readResponseJson(res: Response): Promise<unknown> {
+  const text = await readResponseText(res);
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function extractSessionArray(payload: unknown): unknown[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (!isRecord(payload)) {
+    return [];
+  }
+
+  if (Array.isArray(payload.data)) {
+    return payload.data;
+  }
+
+  if (Array.isArray(payload.sessions)) {
+    return payload.sessions;
+  }
+
+  if (isRecord(payload.data)) {
+    if (Array.isArray(payload.data.sessions)) {
+      return payload.data.sessions;
+    }
+
+    if (Array.isArray(payload.data.data)) {
+      return payload.data.data;
+    }
+  }
+
+  return [];
+}
+
+function parseOpenWaSessions(payload: unknown): OpenWaSession[] {
+  return extractSessionArray(payload)
+    .filter(isRecord)
+    .map((session) => ({
+      id: getString(session.id),
+      name: getString(session.name),
+    }));
+}
+
+async function resolveOpenWaSessionId(
+  baseUrl: string,
+  headers: Record<string, string>,
+  configuredSessionId: string,
+): Promise<string> {
+  const fallbackSessionId = configuredSessionId || 'main';
+
+  try {
+    const res = await fetch(`${baseUrl}/sessions`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!res.ok) {
+      return fallbackSessionId;
+    }
+
+    const sessions = parseOpenWaSessions(await readResponseJson(res));
+    const matchedSession = sessions.find(
+      (session) => session.id === fallbackSessionId || session.name === fallbackSessionId,
+    );
+
+    return matchedSession?.id || fallbackSessionId;
+  } catch {
+    return fallbackSessionId;
+  }
+}
+
 function normalisePhoneForWhatsapp(phone: string): string {
   let normalised = phone.trim().replace(/[^\d+]/g, '');
 
@@ -91,6 +211,75 @@ function normalisePhoneForWhatsapp(phone: string): string {
   return normalised;
 }
 
+function normaliseChatIdForOpenWa(phone: string): string {
+  const trimmed = phone.trim();
+  if (trimmed.includes('@')) {
+    return trimmed;
+  }
+
+  return `${normalisePhoneForWhatsapp(trimmed)}@c.us`;
+}
+
+async function sendOpenWaTextMessage(
+  baseUrl: string,
+  headers: Record<string, string>,
+  sessionId: string,
+  phone: string,
+  message: string,
+): Promise<{ sent: boolean; status?: number; error?: string }> {
+  const resolvedSessionId = await resolveOpenWaSessionId(baseUrl, headers, sessionId);
+  const chatId = normaliseChatIdForOpenWa(phone);
+  const res = await fetch(`${baseUrl}/sessions/${encodeURIComponent(resolvedSessionId)}/messages/send-text`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ chatId, text: message }),
+  });
+
+  if (res.ok) {
+    console.log(`[WhatsApp] Message sent to ${normalisePhoneForWhatsapp(phone)}`);
+    return { sent: true };
+  }
+
+  return {
+    sent: false,
+    status: res.status,
+    error: await readResponseText(res),
+  };
+}
+
+async function sendLegacyWhatsappMessage(
+  baseUrl: string,
+  headers: Record<string, string>,
+  sessionId: string,
+  normalisedPhone: string,
+  message: string,
+): Promise<{ sent: boolean; status?: number; error?: string }> {
+  const res = await fetch(`${baseUrl}/send-message`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      phone: normalisedPhone,
+      chat_id: normalisedPhone,
+      chatId: normalisedPhone,
+      text: message,
+      message,
+      sessionId,
+      session: sessionId,
+    }),
+  });
+
+  if (res.ok) {
+    console.log(`[WhatsApp] Message sent to ${normalisedPhone}`);
+    return { sent: true };
+  }
+
+  return {
+    sent: false,
+    status: res.status,
+    error: await readResponseText(res),
+  };
+}
+
 export async function sendWhatsappMessage(phone: string, message: string): Promise<void> {
   const { apiUrl, apiKey, sessionId } = await getWhatsappConfig();
 
@@ -102,35 +291,25 @@ export async function sendWhatsappMessage(phone: string, message: string): Promi
   const normalised = normalisePhoneForWhatsapp(phone);
 
   try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    if (apiKey) {
-      headers['Authorization'] = `Bearer ${apiKey}`;
-      headers['x-api-key'] = apiKey;
-      headers['token'] = apiKey;
+    const baseUrl = trimTrailingSlash(apiUrl);
+    const headers = buildWhatsappHeaders(apiKey);
+    const openWaResult = await sendOpenWaTextMessage(baseUrl, headers, sessionId, normalised, message);
+
+    if (openWaResult.sent) {
+      return;
     }
 
-    const res = await fetch(`${apiUrl.replace(/\/$/, '')}/send-message`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ 
-        phone: normalised, 
-        chat_id: normalised, 
-        chatId: normalised, 
-        text: message, 
-        message,
-        sessionId,
-        session: sessionId
-      }),
-    });
+    if (openWaResult.status === 404) {
+      const legacyResult = await sendLegacyWhatsappMessage(baseUrl, headers, sessionId, normalised, message);
+      if (legacyResult.sent) {
+        return;
+      }
 
-    if (!res.ok) {
-      const text = await res.text();
-      console.error(`[WhatsApp] HTTP ${res.status} → ${normalised}: ${text}`);
-    } else {
-      console.log(`[WhatsApp] Message sent to ${normalised}`);
+      console.error(`[WhatsApp] HTTP ${legacyResult.status} -> ${normalised}: ${legacyResult.error || ''}`);
+      return;
     }
+
+    console.error(`[WhatsApp] HTTP ${openWaResult.status} -> ${normalised}: ${openWaResult.error || ''}`);
   } catch (err) {
     console.error('[WhatsApp] Failed to send message:', err);
   }
