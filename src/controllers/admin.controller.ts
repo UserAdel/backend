@@ -555,6 +555,18 @@ export const deleteContactRequest = asyncHandler(async (req: Request, res: Respo
   });
 });
 
+function serializeSystemSettings(settings: any) {
+  const configuredApiKey =
+    settings.whatsappApiKey?.trim() || process.env.WHATSAPP_API_KEY?.trim() || '';
+  const { whatsappApiKey: _whatsappApiKey, ...safeSettings } = settings;
+
+  return {
+    ...safeSettings,
+    whatsappApiKey: '',
+    hasWhatsappApiKey: Boolean(configuredApiKey),
+  };
+}
+
 export const getSystemSettings = asyncHandler(async (_req: Request, res: Response) => {
   let settings = await SystemSetting.findOne({ key: 'default' }).lean();
 
@@ -570,28 +582,37 @@ export const getSystemSettings = asyncHandler(async (_req: Request, res: Respons
 
   return successResponse(res, {
     message: 'Settings retrieved',
-    data: { settings },
+    data: { settings: serializeSystemSettings(settings) },
   });
 });
 
 export const updateSystemSettings = asyncHandler(async (req: Request, res: Response) => {
   const { whatsappApiUrl, whatsappApiKey, whatsappSessionId, adminPhone } = req.body;
+  const existingSettings = await SystemSetting.findOne({ key: 'default' }).lean();
+  const nextApiKey =
+    typeof whatsappApiKey === 'string' && whatsappApiKey.trim()
+      ? whatsappApiKey.trim()
+      : existingSettings?.whatsappApiKey ?? '';
 
   const settings = await SystemSetting.findOneAndUpdate(
     { key: 'default' },
     {
       key: 'default',
       whatsappApiUrl: whatsappApiUrl ?? '',
-      whatsappApiKey: whatsappApiKey ?? '',
+      whatsappApiKey: nextApiKey,
       whatsappSessionId: whatsappSessionId ?? 'main',
       adminPhone: adminPhone ?? '',
     },
     { upsert: true, returnDocument: 'after', runValidators: true }
   );
 
+  if (!settings) {
+    throw new AppError('Settings could not be saved', 500);
+  }
+
   return successResponse(res, {
     message: 'Settings updated successfully',
-    data: { settings },
+    data: { settings: serializeSystemSettings(settings.toObject()) },
   });
 });
 
