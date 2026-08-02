@@ -5,7 +5,7 @@
 
 import cron from 'node-cron';
 import { BookingRequest } from '../models/bookingRequest.model.js';
-import { sendWhatsappMessage } from './whatsapp.service.js';
+import { getWhatsappConfig, sendWhatsappMessage } from './whatsapp.service.js';
 
 function getTomorrowDateString(): string {
   const tomorrow = new Date();
@@ -17,9 +17,9 @@ function getTomorrowDateString(): string {
 }
 
 async function sendDailyDigest(): Promise<void> {
-  const adminPhone = process.env.ADMIN_PHONE;
+  const { adminPhone } = await getWhatsappConfig();
   if (!adminPhone) {
-    console.warn('[Scheduler] ADMIN_PHONE not set — skipping daily digest.');
+    console.warn('[Scheduler] Admin notification phone not set — skipping daily digest.');
     return;
   }
 
