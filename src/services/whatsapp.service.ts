@@ -87,16 +87,20 @@ function getString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
 
+function normaliseApiKey(apiKey: string): string {
+  return apiKey.replace(/^Bearer\s+/i, '').trim();
+}
+
 function buildWhatsappHeaders(apiKey: string): Record<string, string> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
 
-  if (apiKey) {
-    headers.Authorization = `Bearer ${apiKey}`;
-    headers['x-api-key'] = apiKey;
-    headers['X-API-Key'] = apiKey;
-    headers.token = apiKey;
+  const normalisedApiKey = normaliseApiKey(apiKey);
+  if (normalisedApiKey) {
+    headers.Authorization = `Bearer ${normalisedApiKey}`;
+    headers['x-api-key'] = normalisedApiKey;
+    headers.token = normalisedApiKey;
   }
 
   return headers;
