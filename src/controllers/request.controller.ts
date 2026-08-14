@@ -25,7 +25,6 @@ export const createBookingRequest = asyncHandler(async (req: Request, res: Respo
   // Non-blocking notifications — customer confirmation + admin alert
   sendBookingConfirmation({
     fullName: booking.fullName,
-    phone: booking.phone,
     whatsapp: booking.whatsapp,
     activityName: activity.name.en,
     arrivalDate: booking.arrivalDate ?? '',
@@ -39,7 +38,6 @@ export const createBookingRequest = asyncHandler(async (req: Request, res: Respo
 
   sendAdminNewBookingAlert({
     fullName: booking.fullName,
-    phone: booking.phone,
     whatsapp: booking.whatsapp,
     activityName: activity.name.en,
     arrivalDate: booking.arrivalDate ?? '',

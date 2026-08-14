@@ -3,8 +3,8 @@ import { Schema, model, type InferSchemaType } from 'mongoose';
 const bookingRequestSchema = new Schema(
   {
     fullName: { type: String, required: true, trim: true },
-    email: { type: String, required: true, trim: true, lowercase: true },
-    phone: { type: String, required: true, trim: true },
+    email: { type: String, trim: true, lowercase: true },
+    phone: { type: String, trim: true },
     whatsapp: { type: String, required: true, trim: true },
     nationality: { type: String, required: true, trim: true },
     arrivalDate: { type: String, required: true, trim: true },

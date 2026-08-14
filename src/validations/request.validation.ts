@@ -2,8 +2,8 @@ import Joi from 'joi';
 
 export const createBookingRequestSchema = Joi.object({
   fullName: Joi.string().trim().min(2).max(120).required(),
-  email: Joi.string().trim().email().required(),
-  phone: Joi.string().trim().min(5).max(40).required(),
+  email: Joi.string().trim().email().optional(),
+  phone: Joi.string().trim().min(5).max(40).optional(),
   whatsapp: Joi.string().trim().min(5).max(40).required(),
   nationality: Joi.string().trim().min(2).max(80).required(),
   arrivalDate: Joi.string().trim().required(),

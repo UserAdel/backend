@@ -6,7 +6,6 @@ import { SystemSetting } from '../models/systemSetting.model.js';
 
 export interface BookingConfirmationPayload {
   fullName: string;
-  phone: string;
   whatsapp: string;
   activityName: string;
   arrivalDate: string;
@@ -344,7 +343,6 @@ export async function sendAdminNewBookingAlert(payload: BookingConfirmationPaylo
   const msg =
     `🔔 *حجز جديد!*\n\n` +
     `👤 *الاسم:* ${payload.fullName}\n` +
-    `📞 *الهاتف:* ${payload.phone}\n` +
     `📲 *واتساب:* ${payload.whatsapp}\n` +
     `🌍 *الجنسية:* ${payload.nationality}\n` +
     `🏄 *النشاط:* ${payload.activityName}\n` +

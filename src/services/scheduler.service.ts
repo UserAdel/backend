@@ -51,7 +51,6 @@ async function sendDailyDigest(): Promise<void> {
       `   📅 موعد النشاط: ${b.preferredDate}\n` +
       `   👥 ${b.adults} بالغ + ${b.children} طفل (إجمالي: ${total})\n` +
       `   🌍 ${b.nationality}\n` +
-      `   📞 هاتف: ${b.phone}\n` +
       `   📲 واتساب: ${b.whatsapp}\n` +
       (b.specialRequests ? `   📝 ${b.specialRequests}\n` : '') +
       `\n`;
