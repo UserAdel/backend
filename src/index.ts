@@ -9,7 +9,7 @@ import requestRoutes from './routes/request.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import testimonialRoutes from './routes/testimonial.routes.js';
-import { startDailyDigestScheduler } from './services/scheduler.service.js';
+import { startDailyBookingScheduler } from './services/scheduler.service.js';
 import { uploadsRoot } from './services/localUpload.service.js';
 
 const env = {
@@ -59,7 +59,7 @@ app.use(globalErrorHandler);
 // Start server after DB connection
 const startServer = async () => {
   await connectDB(env.MONGODB_URI);
-  startDailyDigestScheduler();
+  startDailyBookingScheduler();
   const server = app.listen(env.PORT, () => {
     console.log(`🚀 Server is running at http://localhost:${env.PORT} in ${env.NODE_ENV} mode`);
   });

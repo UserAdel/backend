@@ -17,6 +17,12 @@ export interface BookingConfirmationPayload {
   specialRequests?: string;
 }
 
+export interface PreArrivalDetailsRequestPayload {
+  fullName: string;
+  whatsapp: string;
+  language: string;
+}
+
 export async function getWhatsappConfig() {
   let dbSetting = null;
   try {
@@ -326,6 +332,34 @@ export async function sendWhatsappMessage(phone: string, message: string): Promi
  */
 export async function sendBookingConfirmation(payload: BookingConfirmationPayload): Promise<void> {
   await sendWhatsappMessage(payload.whatsapp, buildCustomerMessage(payload));
+}
+
+/**
+ * Requests the travel details needed one day before the customer's arrival.
+ */
+export async function sendPreArrivalDetailsRequest(
+  payload: PreArrivalDetailsRequestPayload,
+): Promise<void> {
+  const message = payload.language === 'fr'
+    ? (
+      `🛬 *Préparation de votre arrivée*\n\n` +
+      `Bonjour *${payload.fullName}*,\n\n` +
+      `Votre arrivée est prévue demain. Pour préparer votre réservation, merci de nous envoyer :\n\n` +
+      `📷 Une photo claire du passeport de chaque participant\n` +
+      `🏨 Le nom de votre hôtel\n` +
+      `🚪 Votre numéro de chambre\n\n` +
+      `Merci et à très bientôt ! 🌊`
+    ) : (
+      `🛬 *Preparing for your arrival*\n\n` +
+      `Hello *${payload.fullName}*,\n\n` +
+      `Your arrival is tomorrow. To prepare your booking, please send us:\n\n` +
+      `📷 A clear passport photo for each guest\n` +
+      `🏨 Your hotel name\n` +
+      `🚪 Your room number\n\n` +
+      `Thank you, and see you soon! 🌊`
+    );
+
+  await sendWhatsappMessage(payload.whatsapp, message);
 }
 
 // ─── Admin: instant new-booking alert ─────────────────────────────────────
