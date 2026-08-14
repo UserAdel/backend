@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { randomUUID } from 'node:crypto';
 import { asyncHandler } from '../utils/globalErrorHandler.util.js';
 import { successResponse } from '../utils/response.util.js';
 import AppError from '../utils/AppError.util.js';
@@ -14,6 +15,18 @@ import {
 } from '../services/localUpload.service.js';
 
 const activityUploadFolders = ['activities'];
+
+function ensureActivityIdentifiers(payload: Record<string, unknown>) {
+  const id = typeof payload.id === 'string' ? payload.id.trim() : '';
+  const slug = typeof payload.slug === 'string' ? payload.slug.trim() : '';
+  const generatedIdentifier = `activity-${randomUUID()}`;
+
+  return {
+    ...payload,
+    id: id || generatedIdentifier,
+    slug: slug || generatedIdentifier,
+  };
+}
 
 function getUploadedFilesByField(req: Request) {
   const files = req.files as
@@ -280,7 +293,7 @@ export const createActivity = asyncHandler(async (req: Request, res: Response) =
 
   try {
     activity = await Activity.create({
-      ...applyUploadedActivityImage(req),
+      ...ensureActivityIdentifiers(applyUploadedActivityImage(req)),
       isActive: req.body.isActive ?? true,
     });
   } catch (error) {

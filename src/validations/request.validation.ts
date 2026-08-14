@@ -69,6 +69,16 @@ const optionalLocalizedStringSchema = Joi.object({
   fr: Joi.string().trim().allow('').max(5000).default(''),
 });
 
+const optionalActivityLocalizedStringSchema = Joi.object({
+  en: Joi.string().trim().allow('').max(5000).default(''),
+  fr: Joi.string().trim().allow('').max(5000).default(''),
+}).default({ en: '', fr: '' });
+
+const optionalActivityLocalizedListSchema = Joi.object({
+  en: Joi.array().items(Joi.string().trim().allow('')).default([]),
+  fr: Joi.array().items(Joi.string().trim().allow('')).default([]),
+}).default({ en: [], fr: [] });
+
 const pricingSchema = Joi.object({
   adult: Joi.number().min(0).optional(),
   child: Joi.number().min(0).optional(),
@@ -79,8 +89,8 @@ const pricingSchema = Joi.object({
 
 const pricingFieldSchema = Joi.object({
   id: Joi.string().trim().allow('').max(120).optional(),
-  name: localizedStringSchema.required(),
-  price: Joi.number().min(0).required(),
+  name: optionalActivityLocalizedStringSchema,
+  price: Joi.number().min(0).optional(),
   isMain: Joi.boolean().optional(),
 });
 
@@ -104,33 +114,33 @@ const videoReviewSchema = Joi.object({
 });
 
 export const activityAdminSchema = Joi.object({
-  id: Joi.string().trim().min(2).max(120).required(),
-  slug: Joi.string().trim().lowercase().min(2).max(160).required(),
+  id: Joi.string().trim().allow('').max(120).optional(),
+  slug: Joi.string().trim().lowercase().allow('').max(160).optional(),
   name: localizedStringSchema.required(),
-  category: Joi.string().trim().min(2).max(120).required(),
-  description: localizedStringSchema.required(),
-  highlights: localizedListSchema.default({ en: [], fr: [] }),
+  category: Joi.string().trim().allow('').max(120).optional(),
+  description: optionalActivityLocalizedStringSchema,
+  highlights: optionalActivityLocalizedListSchema,
   pricing: pricingSchema.default({}),
-  pricingFields: Joi.array().items(pricingFieldSchema).min(1).required(),
+  pricingFields: Joi.array().items(pricingFieldSchema).optional(),
   ageRestrictions: optionalLocalizedStringSchema.default({ en: '', fr: '' }),
-  duration: Joi.string().trim().min(1).max(80).required(),
+  duration: Joi.string().trim().allow('').max(80).optional(),
   startTime: Joi.string().trim().allow('').max(20).optional(),
   endTime: Joi.string().trim().allow('').max(20).optional(),
   times: Joi.array().items(Joi.string().trim().min(1).max(20)).optional(),
   maxCapacity: Joi.number().integer().min(0).allow(null).optional(),
   maxWeight: Joi.number().integer().min(0).allow(null).optional(),
-  included: localizedListSchema.default({ en: [], fr: [] }),
-  excluded: localizedListSchema.optional(),
-  imageUrl: Joi.string().trim().min(1).max(500).required(),
+  included: optionalActivityLocalizedListSchema,
+  excluded: optionalActivityLocalizedListSchema.optional(),
+  imageUrl: Joi.string().trim().allow('').max(500).optional(),
   galleryImages: Joi.array().items(Joi.string().trim().min(1).max(500)).optional(),
-  featured: Joi.boolean().required(),
-  childFriendly: Joi.boolean().required(),
-  familyFriendly: Joi.boolean().required(),
-  pickupIncluded: Joi.boolean().required(),
+  featured: Joi.boolean().optional(),
+  childFriendly: Joi.boolean().optional(),
+  familyFriendly: Joi.boolean().optional(),
+  pickupIncluded: Joi.boolean().optional(),
   availableDaily: Joi.boolean().default(true),
   freeCancellation: Joi.boolean().default(true),
-  privateAvailable: Joi.boolean().required(),
-  groupAvailable: Joi.boolean().required(),
+  privateAvailable: Joi.boolean().optional(),
+  groupAvailable: Joi.boolean().optional(),
   videoHighlights: Joi.array().items(videoHighlightSchema).optional(),
   videoReviews: Joi.array().items(videoReviewSchema).optional(),
   seoKeywords: Joi.array().items(Joi.string().trim().max(120)).optional(),

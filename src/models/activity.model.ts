@@ -2,6 +2,14 @@ import { Schema, model, type InferSchemaType } from 'mongoose';
 
 const localizedStringSchema = new Schema(
   {
+    en: { type: String, trim: true, default: '' },
+    fr: { type: String, trim: true, default: '' },
+  },
+  { _id: false }
+);
+
+const requiredLocalizedStringSchema = new Schema(
+  {
     en: { type: String, required: true, trim: true },
     fr: { type: String, required: true, trim: true },
   },
@@ -18,8 +26,8 @@ const optionalLocalizedStringSchema = new Schema(
 
 const localizedListSchema = new Schema(
   {
-    en: { type: [{ type: String, required: true, trim: true }], default: [] },
-    fr: { type: [{ type: String, required: true, trim: true }], default: [] },
+    en: { type: [{ type: String, trim: true }], default: [] },
+    fr: { type: [{ type: String, trim: true }], default: [] },
   },
   { _id: false }
 );
@@ -38,8 +46,8 @@ const pricingSchema = new Schema(
 const pricingFieldSchema = new Schema(
   {
     id: { type: String, trim: true },
-    name: { type: localizedStringSchema, required: true },
-    price: { type: Number, required: true, min: 0 },
+    name: { type: localizedStringSchema, default: () => ({ en: '', fr: '' }) },
+    price: { type: Number, min: 0 },
     isMain: { type: Boolean, default: false },
   },
   { _id: false }
@@ -87,16 +95,16 @@ const activityVideoReviewSchema = new Schema(
 
 const activitySchema = new Schema(
   {
-    id: { type: String, required: true, unique: true, trim: true },
-    slug: { type: String, required: true, unique: true, index: true, trim: true },
-    name: { type: localizedStringSchema, required: true },
-    category: { type: String, required: true, index: true, trim: true },
-    description: { type: localizedStringSchema, required: true },
+    id: { type: String, unique: true, sparse: true, trim: true },
+    slug: { type: String, unique: true, sparse: true, index: true, trim: true },
+    name: { type: requiredLocalizedStringSchema, required: true },
+    category: { type: String, index: true, trim: true, default: '' },
+    description: { type: localizedStringSchema, default: () => ({ en: '', fr: '' }) },
     highlights: { type: localizedListSchema, default: () => ({ en: [], fr: [] }) },
-    pricing: { type: pricingSchema, required: true },
+    pricing: { type: pricingSchema, default: () => ({}) },
     pricingFields: { type: [pricingFieldSchema], default: [] },
     ageRestrictions: { type: optionalLocalizedStringSchema, default: () => ({ en: '', fr: '' }) },
-    duration: { type: String, required: true, trim: true },
+    duration: { type: String, trim: true, default: '' },
     startTime: { type: String, trim: true },
     endTime: { type: String, trim: true },
     times: [{ type: String, trim: true }],
@@ -104,16 +112,16 @@ const activitySchema = new Schema(
     maxWeight: Number,
     included: { type: localizedListSchema, default: () => ({ en: [], fr: [] }) },
     excluded: localizedListSchema,
-    imageUrl: { type: String, required: true, trim: true },
+    imageUrl: { type: String, trim: true, default: '' },
     galleryImages: [{ type: String, trim: true }],
     featured: { type: Boolean, default: false },
-    childFriendly: { type: Boolean, required: true },
-    familyFriendly: { type: Boolean, required: true },
-    pickupIncluded: { type: Boolean, required: true },
+    childFriendly: { type: Boolean, default: false },
+    familyFriendly: { type: Boolean, default: false },
+    pickupIncluded: { type: Boolean, default: false },
     availableDaily: { type: Boolean, default: true },
     freeCancellation: { type: Boolean, default: true },
-    privateAvailable: { type: Boolean, required: true },
-    groupAvailable: { type: Boolean, required: true },
+    privateAvailable: { type: Boolean, default: false },
+    groupAvailable: { type: Boolean, default: false },
     reviews: { type: [activityReviewSchema], default: [] },
     videoHighlights: { type: [activityVideoHighlightSchema], default: [] },
     videoReviews: { type: [activityVideoReviewSchema], default: [] },
