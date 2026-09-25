@@ -4,6 +4,7 @@ import { successResponse } from '../utils/response.util.js';
 import AppError from '../utils/AppError.util.js';
 import { Activity } from '../models/activity.model.js';
 import { ActivityCategory } from '../models/activityCategory.model.js';
+import { findActivityBySlugOrAlias } from '../utils/activitySlug.util.js';
 
 function withApprovedReviews<ActivityType extends { reviews?: Array<{ isApproved?: boolean }> }>(
   activity: ActivityType
@@ -42,10 +43,7 @@ export const getActivityBySlug = asyncHandler(async (req: Request, res: Response
     throw new AppError('Activity slug is required', 400);
   }
 
-  const activity = await Activity.findOne({
-    slug,
-    isActive: true,
-  }).lean();
+  const activity = await findActivityBySlugOrAlias(slug, true);
 
   if (!activity) {
     throw new AppError('Activity not found', 404);
@@ -63,10 +61,7 @@ export const createActivityReview = asyncHandler(async (req: Request, res: Respo
     throw new AppError('Activity slug is required', 400);
   }
 
-  const activity = await Activity.findOne({
-    slug,
-    isActive: true,
-  });
+  const activity = await findActivityBySlugOrAlias(slug, false);
 
   if (!activity) {
     throw new AppError('Activity not found', 404);

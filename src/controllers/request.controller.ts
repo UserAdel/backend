@@ -7,11 +7,10 @@ import { BookingRequest } from '../models/bookingRequest.model.js';
 import { ContactRequest } from '../models/contactRequest.model.js';
 import { sendBookingConfirmation, sendAdminNewBookingAlert } from '../services/whatsapp.service.js';
 
+import { findActivityBySlugOrAlias } from '../utils/activitySlug.util.js';
+
 export const createBookingRequest = asyncHandler(async (req: Request, res: Response) => {
-  const activity = await Activity.findOne({
-    slug: req.body.selectedActivity,
-    isActive: true,
-  }).lean();
+  const activity = await findActivityBySlugOrAlias(req.body.selectedActivity, true);
 
   if (!activity) {
     throw new AppError('Selected activity was not found', 404);
