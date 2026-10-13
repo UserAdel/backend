@@ -15,9 +15,9 @@ module.exports = {
         MONGODB_URI: "mongodb+srv://adile:adilelove1@cluster0.nkexinn.mongodb.net/Hurghada?appName=Cluster0",
         JWT_SECRET: "nasu_backend_secret_key_2026",
         CLIENT_URL: "https://hurghadafrenchguide.com",
-        WHATSAPP_API_URL: "https://hurghadafrenchguide.com/api",
-        WHATSAPP_API_KEY: "",
-        WHATSAPP_SESSION_ID: "main",
+        WHATSAPP_API_URL: "https://whatsapp.edu-lens.com/api",
+        WHATSAPP_API_KEY: "owa_k1_324472a9877545c2baba554745c1b2ba386ca4e7a41d81837b50e65b69d2be25",
+        WHATSAPP_SESSION_ID: "hurghada-prod",
         ADMIN_PHONE: "01273809805",
         BASE_URL: "https://hurghadafrenchguide.com",
         FRONTEND_URL: "https://hurghadafrenchguide.com"
