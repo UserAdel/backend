@@ -18,7 +18,7 @@ module.exports = {
         WHATSAPP_API_URL: "https://whatsapp.edu-lens.com/api",
         WHATSAPP_API_KEY: "owa_k1_324472a9877545c2baba554745c1b2ba386ca4e7a41d81837b50e65b69d2be25",
         WHATSAPP_SESSION_ID: "hurghada-prod",
-        ADMIN_PHONE: "01273809805",
+        ADMIN_PHONE: "33652343658",
         BASE_URL: "https://hurghadafrenchguide.com",
         FRONTEND_URL: "https://hurghadafrenchguide.com"
       },
