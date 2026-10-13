@@ -11,7 +11,7 @@ module.exports = {
       max_memory_restart: "1G",
       env: {
         NODE_ENV: "production",
-        PORT: 5000,
+        PORT: 5001,
         MONGODB_URI: "mongodb+srv://adile:adilelove1@cluster0.nkexinn.mongodb.net/Hurghada?appName=Cluster0",
         JWT_SECRET: "nasu_backend_secret_key_2026",
         CLIENT_URL: "https://hurghadafrenchguide.com",
